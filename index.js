@@ -93,7 +93,7 @@ async function blockChainWatcher(){
     let lasttokenidprocessed
     if(result.length == 0 || result[0] == 0){
         lasttokenidprocessed = 1
-        // await db.insertLastTokenIdProcessed(lasttokenidprocessed)
+        await db.insertLastTokenIdProcessed(lasttokenidprocessed)
     }
     else{
         lasttokenidprocessed = result[0]
@@ -118,7 +118,7 @@ async function blockChainWatcher(){
             }
         }
     }
-    // await db.updateLastProcessedToken(lasttokenidprocessed,lasttokenID)
+    await db.updateLastProcessedToken(lasttokenidprocessed,lasttokenID)
     process.exit()
 }
 

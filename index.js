@@ -91,12 +91,12 @@ async function orderHandler(result,index){
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()
     let lasttokenidprocessed
-    if(result.length == 0 || result[0] == 0){
+    if(result.length == 0 || result[0].lasttokenidprocessed == 0){
         lasttokenidprocessed = 1
         await db.insertLastTokenIdProcessed(lasttokenidprocessed)
     }
     else{
-        lasttokenidprocessed = result[0]
+        lasttokenidprocessed = result[0].lasttokenidprocessed
     }
     result = await dscpApi.getLasttoken()
     const lasttokenID = result.data.id

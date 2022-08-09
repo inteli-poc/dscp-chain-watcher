@@ -28,6 +28,7 @@ async function insertAttachment(attachment){
   }
 
 async function updateLastProcessedToken(lasttokenidprocessed,newTokenIdProcessed){
+    console.log(lasttokenidprocessed,newTokenIdProcessed,'debugging watcher')
     return client('blockchainlasttokenid').update({ lasttokenidprocessed : newTokenIdProcessed }).where({lasttokenidprocessed})
 }
 

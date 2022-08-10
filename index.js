@@ -91,8 +91,8 @@ async function orderHandler(result,index){
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()
     let lasttokenidprocessed
-    if(result.length == 0 || result[0].lasttokenidprocessed == 0){
-        lasttokenidprocessed = 1
+    if(result.length == 0){
+        lasttokenidprocessed = 0
         await db.insertLastTokenIdProcessed(lasttokenidprocessed)
     }
     else{
@@ -123,6 +123,7 @@ async function blockChainWatcher(){
             console.log(err.message)
         }
     }
+
     await db.updateLastProcessedToken(lasttokenidprocessed,lasttokenID)
     process.exit()
 }

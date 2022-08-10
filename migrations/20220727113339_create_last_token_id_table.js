@@ -4,7 +4,7 @@
  */
 exports.up = async function(knex) {
     await knex.schema.createTable('blockchainlasttokenid', (def) => {
-        def.integer('lasttokenidprocessed').notNullable().default(0)
+        def.integer('lasttokenidprocessed').notNullable()
         def.primary(['lasttokenidprocessed'])
       })
 };

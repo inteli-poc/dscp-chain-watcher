@@ -104,18 +104,23 @@ async function blockChainWatcher(){
         process.exit()
     }
     for(let index= lasttokenidprocessed; index <= lasttokenID; index++){
-        result = await dscpApi.getItem(index)
-        result = result.data
-        if(result && result['metadata_keys'] && result['metadata_keys'].includes('type')){
-            let response = await dscpApi.getMetadata(index,'type')
-            switch(response.data){
-                case 'RECIPE': 
-                    await recipeHandler(result,index)
-                    break
-                case 'ORDER':
-                    await orderHandler(result,index)
-                    break
+        try{
+            result = await dscpApi.getItem(index)
+            result = result.data
+            if(result && result['metadata_keys'] && result['metadata_keys'].includes('type')){
+                let response = await dscpApi.getMetadata(index,'type')
+                switch(response.data){
+                    case 'RECIPE': 
+                        await recipeHandler(result,index)
+                        break
+                    case 'ORDER':
+                        await orderHandler(result,index)
+                        break
+                }
             }
+        }
+        catch(err){
+            console.log(err.message)
         }
     }
     await db.updateLastProcessedToken(lasttokenidprocessed,lasttokenID)

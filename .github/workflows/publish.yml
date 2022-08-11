@@ -1,4 +1,4 @@
-name: Create and publish inteli-api image
+name: Create and publish dscp-chain-watcher image
 
 on:
   push:

@@ -19,9 +19,18 @@ methods.getItem = async (tokenID) => {
 
 methods.getMetadata = async (tokenID,metadata) => {
     const url = `http://${process.env.DSCP_API_HOST}:${process.env.DSCP_API_PORT}/v3/item/${tokenID}/metadata/${metadata}` 
-    return axios(url, {
-        method: 'GET'
-        }
-    )
+    if(metadata == 'image'){
+        return axios(url, {
+            method: 'GET',
+            responseType: 'arraybuffer'
+            }
+        )
+    }
+    else{
+        return axios(url, {
+            method: 'GET'
+            }
+        )
+    }
 }
 module.exports = methods

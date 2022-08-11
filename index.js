@@ -8,7 +8,9 @@ async function recipeHandler(result,index){
         let externalId = await dscpApi.getMetadata(index,'externalId')
         let image = await dscpApi.getMetadata(index,'image')
         const attachment = {}
-        let filename = 'json'
+        let startIndex = image.headers['content-disposition'].indexOf('"')
+        let length = image.headers['content-disposition'].length
+        let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
         let binary_blob = Buffer.from(image.data)
         attachment.filename = filename
         attachment.binary_blob = binary_blob

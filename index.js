@@ -66,6 +66,7 @@ async function orderHandler(result,index){
         order.supplier = result.roles.Supplier
         let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
         let status = await dscpApi.getMetadata(index,'status')
+        let externalId = await dscpApi.getMetadata(index,'externalId')
         order.items = recipeUids
         order.latest_token_id = result.id
         order.original_token_id = result.original_id
@@ -73,6 +74,7 @@ async function orderHandler(result,index){
         order.supplier = result.roles.Supplier
         order.status = status.data
         order.required_by = requiredBy.data
+        order.external_id = externalId.data
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertOrder(order)

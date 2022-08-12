@@ -88,7 +88,8 @@ async function orderHandler(result,index){
         }
         const response = await db.checkOrderExists(order)
         if(response.length == 0){
-            await db.updateOrder(result.id,result.original_id)
+            let status = await dscpApi.getMetadata(index,'status')
+            await db.updateOrder(result.id,result.original_id,status)
         }
     }
 }

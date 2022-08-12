@@ -5,6 +5,7 @@ async function recipeHandler(result,index){
     if(result.id == result.original_id){
         const recipe = {}
         let alloy = await dscpApi.getMetadata(index,'alloy')
+        let price = await dscpApi.getMetadata(index,'price')
         let externalId = await dscpApi.getMetadata(index,'externalId')
         let image = await dscpApi.getMetadata(index,'image')
         const attachment = {}
@@ -28,7 +29,7 @@ async function recipeHandler(result,index){
         recipe.original_token_id = result.original_id
         recipe.owner = result.roles.Owner
         recipe.supplier = result.roles.Supplier
-        recipe.price = 1200
+        recipe.price = price.data
         const response = await db.checkRecipeExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertRecipe(recipe)

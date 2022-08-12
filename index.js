@@ -89,6 +89,7 @@ async function orderHandler(result,index){
         const response = await db.checkOrderExists(order)
         if(response.length == 0){
             let status = await dscpApi.getMetadata(index,'status')
+            status = status.data
             await db.updateOrder(result.id,result.original_id,status)
         }
     }

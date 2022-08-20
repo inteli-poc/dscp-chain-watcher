@@ -52,8 +52,8 @@ async function insertOrder(order){
   return client('orders').insert(order)
 }
 
-async function updateOrder(latest_token_id,original_token_id,status){
-  return client('orders').update({ latest_token_id,status }).where({original_token_id})
+async function updateOrder(order,original_token_id){
+  return client('orders').update(order).where({original_token_id})
 }
 
 async function checkOrderExists(order){

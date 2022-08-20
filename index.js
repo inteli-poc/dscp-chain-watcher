@@ -48,8 +48,18 @@ async function recipeHandler(result,index){
 }
 
 async function orderHandler(result,index){
+    let order = {}
+    let price = await dscpApi.getMetadata(index,'price')
+    let quantity = await dscpApi.getMetadata(index,'quantity')
+    let forecastDate = await dscpApi.getMetadata(index,'forecastDate')
+    let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
+    let status = await dscpApi.getMetadata(index,'status')
+    order.status = status.data
+    order.required_by = requiredBy.data
+    order.price = price.data
+    order.quantity = quantity.data
+    order.forecast_date = forecastDate.data
     if(result.id == result.original_id){
-        const order = {}
         const recipeIds = result.metadata_keys.filter((item) => {
             if(!isNaN(parseInt(item))){
                 return true
@@ -57,7 +67,9 @@ async function orderHandler(result,index){
             return false
         }) 
         const recipeUids = await Promise.all(recipeIds.map(async (id) => {
-            let result = await db.getRecipe(id)
+            let dscpResponse = await dscpApi.getItem(id)
+            dscpResponse = dscpResponse.data
+            let result = await db.getRecipe(dscpResponse.original_id)
             return result[0].id
         }))
         order.items = recipeUids
@@ -65,16 +77,7 @@ async function orderHandler(result,index){
         order.original_token_id = result.original_id
         order.buyer = result.roles.Buyer
         order.supplier = result.roles.Supplier
-        let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
-        let status = await dscpApi.getMetadata(index,'status')
         let externalId = await dscpApi.getMetadata(index,'externalId')
-        order.items = recipeUids
-        order.latest_token_id = result.id
-        order.original_token_id = result.original_id
-        order.buyer = result.roles.Buyer
-        order.supplier = result.roles.Supplier
-        order.status = status.data
-        order.required_by = requiredBy.data
         order.external_id = externalId.data
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
@@ -82,15 +85,41 @@ async function orderHandler(result,index){
         }
     }
     else{
-        const order = {
+        const idCombination = {
             latest_token_id : result.id,
             original_token_id : result.original_id
         }
-        const response = await db.checkOrderExists(order)
+        const response = await db.checkOrderExists(idCombination)
         if(response.length == 0){
-            let status = await dscpApi.getMetadata(index,'status')
-            status = status.data
-            await db.updateOrder(result.id,result.original_id,status)
+            order.image_attachment_id = null
+            order.comments = null
+            if(order.status == 'AcknowledgedWithExceptions'){
+                try{
+                    let image = await dscpApi.getMetadata(index,'image')
+                    const attachment = {}
+                    let startIndex = image.headers['content-disposition'].indexOf('"')
+                    let length = image.headers['content-disposition'].length
+                    let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
+                    let binary_blob = Buffer.from(image.data)
+                    attachment.filename = filename
+                    attachment.binary_blob = binary_blob
+                    const [attachmentId] = await db.insertAttachment(attachment)
+                    order.image_attachment_id = attachmentId.id
+                }
+                catch(err){
+                    console.log('image not found')
+                }
+                try{
+                    let comments = await dscpApi.getMetadata(index,'comments')
+                    comments = comments.data
+                    order.comments = comments
+                }
+                catch(err){
+                    console.log('comments not found')
+                }
+            }
+            order.latest_token_id = result.id
+            await db.updateOrder(order,result.original_id)
         }
     }
 }
@@ -112,6 +141,7 @@ async function blockChainWatcher(){
     }
     for(let index= lasttokenidprocessed; index <= lasttokenID; index++){
         try{
+            console.log('Syncing token id : ', index)
             result = await dscpApi.getItem(index)
             result = result.data
             if(result && result['metadata_keys'] && result['metadata_keys'].includes('type')){
@@ -125,9 +155,10 @@ async function blockChainWatcher(){
                         break
                 }
             }
+            console.log('Completed syncing token id : ',index)
         }
         catch(err){
-            console.log(err.message)
+            console.log('Failed syncing token id : ',index,' error : ',err.message)
         }
     }
 

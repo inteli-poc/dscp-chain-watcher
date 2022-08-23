@@ -52,12 +52,28 @@ async function insertOrder(order){
   return client('orders').insert(order)
 }
 
+async function insertPart(part){
+  return client('parts').insert(part)
+}
+
+async function insertBuild(build){
+  return client('build').insert(build).returning(['id'])
+}
+
 async function updateOrder(order,original_token_id){
   return client('orders').update(order).where({original_token_id})
 }
 
+async function updateBuild(order,original_token_id){
+  return client('build').update(order).where({original_token_id})
+}
+
 async function checkOrderExists(order){
   return client('orders').select().where(order)
+}
+
+async function checkBuildExists(build){
+  return client('build').select().where(build)
 }
 
 module.exports = {
@@ -71,5 +87,9 @@ module.exports = {
     insertOrder,
     updateOrder,
     checkRecipeExists,
-    checkOrderExists
+    checkOrderExists,
+    checkBuildExists,
+    insertBuild,
+    insertPart,
+    updateBuild
 }

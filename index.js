@@ -124,6 +124,57 @@ async function orderHandler(result,index){
     }
 }
 
+async function buildHandler(result,index){
+    let build = {}
+    let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
+    let externalId = await dscpApi.getMetadata(index,'externalId')
+    let status = await dscpApi.getMetadata(index,'status')
+    build.completion_estimated_at = completionEstimate.data
+    build.external_id = externalId.data
+    build.status = status.data
+    if(result.id == result.original_id){
+        const recipeIds = result.metadata_keys.filter((item) => {
+            if(!isNaN(parseInt(item))){
+                return true
+            }
+            return false
+        }) 
+        const recipeUids = await Promise.all(recipeIds.map(async (id) => {
+            let dscpResponse = await dscpApi.getItem(id)
+            dscpResponse = dscpResponse.data
+            let result = await db.getRecipe(dscpResponse.original_id)
+            return result[0].id
+        }))
+        build.latest_token_id = result.id
+        build.original_token_id = result.original_id
+        build.supplier = result.roles.Supplier
+        const response = await db.checkBuildExists({original_token_id : result.original_id})
+        if(response.length == 0){
+            const [buildId] = await db.insertBuild(build)
+            for(let index = 0; index < recipeUids.length; index++){
+                let part = {}
+                part.build_id = buildId.id
+                part.recipe_id = recipeUids[index]
+                part.supplier = result.roles.Supplier
+                await db.insertPart(part)
+            }
+
+        }
+    }
+    else{
+        const idCombination = {
+            latest_token_id : result.id,
+            original_token_id : result.original_id
+        }
+        const response = await db.checkBuildExists(idCombination)
+        if(response.length == 0){
+            build.latest_token_id = result.id
+            await db.updateBuild(build,result.original_id)
+        }
+    }
+
+}
+
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()
     let lasttokenidprocessed
@@ -152,6 +203,9 @@ async function blockChainWatcher(){
                         break
                     case 'ORDER':
                         await orderHandler(result,index)
+                        break
+                    case 'BUILD':
+                        await buildHandler(result,index)
                         break
                 }
             }

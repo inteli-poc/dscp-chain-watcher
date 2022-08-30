@@ -132,7 +132,7 @@ async function buildHandler(result,index){
     build.status = status.data
     if(build.status == 'Scheduled'){
         let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
-        build.completion_estimated_at = completionEstimate.data
+        build.completion_estimate = completionEstimate.data
     }
     if(result.id == result.original_id){
         const recipeIds = result.metadata_keys.filter((item) => {
@@ -176,7 +176,7 @@ async function buildHandler(result,index){
             }
             if(build.status != 'Completed'){
                 let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
-                build.completion_estimated_at = completionEstimate.data
+                build.completion_estimate = completionEstimate.data
             }
             if(build.status == 'Started'){
                 try{

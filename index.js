@@ -128,9 +128,12 @@ async function buildHandler(result,index){
     let build = {}
     let externalId = await dscpApi.getMetadata(index,'externalId')
     let status = await dscpApi.getMetadata(index,'status')
-    build.completion_estimated_at = completionEstimate.data
     build.external_id = externalId.data
     build.status = status.data
+    if(build.status == 'Scheduled'){
+        let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
+        build.completion_estimated_at = completionEstimate.data
+    }
     if(result.id == result.original_id){
         const recipeIds = result.metadata_keys.filter((item) => {
             if(!isNaN(parseInt(item))){

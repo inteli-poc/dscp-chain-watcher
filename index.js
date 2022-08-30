@@ -198,7 +198,7 @@ async function buildHandler(result,index){
                     attachment.filename = filename
                     attachment.binary_blob = binary_blob
                     const [attachmentId] = await db.insertAttachment(attachment)
-                    build.image_attachment_id = attachmentId.id
+                    build.attachment_id = attachmentId.id
                 }
                 catch(err){
                     console.log('image not found')

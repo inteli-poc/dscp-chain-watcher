@@ -64,8 +64,8 @@ async function updateOrder(order,original_token_id){
   return client('orders').update(order).where({original_token_id})
 }
 
-async function updateBuild(order,original_token_id){
-  return client('build').update(order).where({original_token_id})
+async function updateBuild(build,original_token_id){
+  return client('build').update(build).where({original_token_id})
 }
 
 async function checkOrderExists(order){

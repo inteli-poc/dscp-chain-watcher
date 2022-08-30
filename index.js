@@ -126,7 +126,6 @@ async function orderHandler(result,index){
 
 async function buildHandler(result,index){
     let build = {}
-    let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
     let externalId = await dscpApi.getMetadata(index,'externalId')
     let status = await dscpApi.getMetadata(index,'status')
     build.completion_estimated_at = completionEstimate.data
@@ -168,6 +167,35 @@ async function buildHandler(result,index){
         }
         const response = await db.checkBuildExists(idCombination)
         if(response.length == 0){
+            if(build.status == 'Completed'){
+                let completedAt = await dscpApi.getMetadata(index,'completedAt')
+                build.completed_at = completedAt.data
+            }
+            if(build.status != 'Completed'){
+                let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
+                build.completion_estimated_at = completionEstimate.data
+            }
+            if(build.status == 'Started'){
+                let startedAt = await dscpApi.getMetadata(index,'startedAt')
+                build.startedAt = startedAt.data
+            }
+            if(build.status == 'Started' || build.status == 'Completed'){
+                try{
+                    let image = await dscpApi.getMetadata(index,'image')
+                    const attachment = {}
+                    let startIndex = image.headers['content-disposition'].indexOf('"')
+                    let length = image.headers['content-disposition'].length
+                    let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
+                    let binary_blob = Buffer.from(image.data)
+                    attachment.filename = filename
+                    attachment.binary_blob = binary_blob
+                    const [attachmentId] = await db.insertAttachment(attachment)
+                    build.image_attachment_id = attachmentId.id
+                }
+                catch(err){
+                    console.log('image not found')
+                }
+            }
             build.latest_token_id = result.id
             await db.updateBuild(build,result.original_id)
         }

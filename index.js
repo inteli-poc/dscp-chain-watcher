@@ -180,7 +180,7 @@ async function buildHandler(result,index){
             }
             if(build.status == 'Started'){
                 let startedAt = await dscpApi.getMetadata(index,'startedAt')
-                build.startedAt = startedAt.data
+                build.started_at = startedAt.data
             }
             if(build.status == 'Started' || build.status == 'Completed'){
                 try{

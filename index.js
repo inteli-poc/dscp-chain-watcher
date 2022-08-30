@@ -179,8 +179,13 @@ async function buildHandler(result,index){
                 build.completion_estimated_at = completionEstimate.data
             }
             if(build.status == 'Started'){
-                let startedAt = await dscpApi.getMetadata(index,'startedAt')
-                build.started_at = startedAt.data
+                try{
+                    let startedAt = await dscpApi.getMetadata(index,'startedAt')
+                    build.started_at = startedAt.data
+                }
+                catch(err){
+                    console.log('startedAt not found')
+                }
             }
             if(build.status == 'Started' || build.status == 'Completed'){
                 try{

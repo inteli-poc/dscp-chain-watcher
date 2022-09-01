@@ -145,7 +145,7 @@ async function buildHandler(result,index){
             let dscpResponse = await dscpApi.getItem(id)
             dscpResponse = dscpResponse.data
             let result = await db.getRecipe(dscpResponse.original_id)
-            return result[0].id
+            return {id: result[0].id, certifications : result[0].required_certs}
         }))
         build.latest_token_id = result.id
         build.original_token_id = result.original_id
@@ -156,7 +156,8 @@ async function buildHandler(result,index){
             for(let index = 0; index < recipeUids.length; index++){
                 let part = {}
                 part.build_id = buildId.id
-                part.recipe_id = recipeUids[index]
+                part.recipe_id = recipeUids[index].id
+                part.certifications = JSON.stringify(recipeUids[index].certifications)
                 part.supplier = result.roles.Supplier
                 await db.insertPart(part)
             }

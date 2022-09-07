@@ -48,6 +48,10 @@ async function checkRecipeExists(recipe){
   return client('recipes').select().where(recipe)
 }
 
+async function checkAttachmentExists(id){
+  return client('attachments').select().where({ id })
+}
+
 async function insertOrder(order){
   return client('orders').insert(order)
 }
@@ -91,5 +95,6 @@ module.exports = {
     checkBuildExists,
     insertBuild,
     insertPart,
-    updateBuild
+    updateBuild,
+    checkAttachmentExists
 }

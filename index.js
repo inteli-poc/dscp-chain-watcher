@@ -8,14 +8,26 @@ async function recipeHandler(result,index){
         let price = await dscpApi.getMetadata(index,'price')
         let externalId = await dscpApi.getMetadata(index,'externalId')
         let image = await dscpApi.getMetadata(index,'image')
+        let id = await dscpApi.getMetadata(index,'id')
+        id = Buffer.from(id.data)
         const attachment = {}
         let startIndex = image.headers['content-disposition'].indexOf('"')
         let length = image.headers['content-disposition'].length
         let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
         let binary_blob = Buffer.from(image.data)
+        let imageAttachmentId = await db.dscpApi.getMetadata(index,'imageAttachmentId')
+        imageAttachmentId = Buffer.from(imageAttachmentId.data)
         attachment.filename = filename
         attachment.binary_blob = binary_blob
-        const [attachmentId] = await db.insertAttachment(attachment)
+        attachment.id = imageAttachmentId
+        let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
+        let attachmentId
+        if(attachmentResult.length == 0){
+            [attachmentId] = await db.insertAttachment(attachment)
+        }
+        else{
+            attachmentId.id = imageAttachmentId
+        }
         let material = await dscpApi.getMetadata(index,'material')
         let name = await dscpApi.getMetadata(index,'name')
         let requiredCerts = await dscpApi.getMetadata(index,'requiredCerts')
@@ -30,6 +42,7 @@ async function recipeHandler(result,index){
         recipe.owner = result.roles.Owner
         recipe.supplier = result.roles.Supplier
         recipe.price = price.data
+        recipe.id = id
         const response = await db.checkRecipeExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertRecipe(recipe)

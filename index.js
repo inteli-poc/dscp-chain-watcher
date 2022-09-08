@@ -9,24 +9,20 @@ async function recipeHandler(result,index){
         let externalId = await dscpApi.getMetadata(index,'externalId')
         let image = await dscpApi.getMetadata(index,'image')
         let id = await dscpApi.getMetadata(index,'id')
-        id = Buffer.from(id.data)
+        id = id.data
         const attachment = {}
         let startIndex = image.headers['content-disposition'].indexOf('"')
         let length = image.headers['content-disposition'].length
         let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
         let binary_blob = Buffer.from(image.data)
-        let imageAttachmentId = await db.dscpApi.getMetadata(index,'imageAttachmentId')
-        imageAttachmentId = Buffer.from(imageAttachmentId.data)
+        let imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
+        imageAttachmentId = imageAttachmentId.data
         attachment.filename = filename
         attachment.binary_blob = binary_blob
         attachment.id = imageAttachmentId
         let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
-        let attachmentId
         if(attachmentResult.length == 0){
-            [attachmentId] = await db.insertAttachment(attachment)
-        }
-        else{
-            attachmentId.id = imageAttachmentId
+            await db.insertAttachment(attachment)
         }
         let material = await dscpApi.getMetadata(index,'material')
         let name = await dscpApi.getMetadata(index,'name')
@@ -35,7 +31,7 @@ async function recipeHandler(result,index){
         recipe.material = material.data
         recipe.name = name.data
         recipe.required_certs = JSON.stringify(requiredCerts.data)
-        recipe.image_attachment_id = attachmentId.id
+        recipe.image_attachment_id = attachment.id
         recipe.external_id = externalId.data
         recipe.latest_token_id = result.id
         recipe.original_token_id = result.original_id
@@ -73,18 +69,11 @@ async function orderHandler(result,index){
     order.quantity = quantity.data
     order.forecast_date = forecastDate.data
     if(result.id == result.original_id){
-        const recipeIds = result.metadata_keys.filter((item) => {
-            if(!isNaN(parseInt(item))){
-                return true
-            }
-            return false
-        }) 
-        const recipeUids = await Promise.all(recipeIds.map(async (id) => {
-            let dscpResponse = await dscpApi.getItem(id)
-            dscpResponse = dscpResponse.data
-            let result = await db.getRecipe(dscpResponse.original_id)
-            return result[0].id
-        }))
+        let recipeUids = await dscpApi.getMetadata(index,'recipes')
+        let id = await dscpApi.getMetadata(index,'id')
+        id = id.data
+        recipeUids = recipeUids.data
+        order.id = id
         order.items = recipeUids
         order.latest_token_id = result.id
         order.original_token_id = result.original_id

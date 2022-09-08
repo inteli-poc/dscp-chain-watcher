@@ -60,6 +60,14 @@ async function insertPart(part){
   return client('parts').insert(part)
 }
 
+async function updatePart(part, id, original_token_id, latest_token_id){
+  return client('parts').update({ ...part, metadata: JSON.stringify(part.metadata), certifications: JSON.stringify(part.certifications), original_token_id, latest_token_id } ).where( { id })
+}
+
+async function getPartById(id){
+  return client('parts').select().where({ id })
+}
+
 async function insertBuild(build){
   return client('build').insert(build)
 }
@@ -74,6 +82,10 @@ async function updateBuild(build,original_token_id){
 
 async function checkOrderExists(order){
   return client('orders').select().where(order)
+}
+
+async function checkPartExists(part){
+  return client('parts').select().where(part)
 }
 
 async function checkBuildExists(build){
@@ -96,5 +108,8 @@ module.exports = {
     insertBuild,
     insertPart,
     updateBuild,
-    checkAttachmentExists
+    checkAttachmentExists,
+    getPartById,
+    checkPartExists,
+    updatePart
 }

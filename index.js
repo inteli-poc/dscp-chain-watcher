@@ -157,8 +157,8 @@ async function buildHandler(result,index){
             for(let index = 0; index < partRecipeMap.length; index++){
                 let part = {}
                 part.build_id = id
-                part.recipe_id = partRecipeMap[i].recipe_id
-                part.id = partRecipeMap[i].id
+                part.recipe_id = partRecipeMap[index].recipe_id
+                part.id = partRecipeMap[index].id
                 let [recipe] = await db.getRecipeById(part.recipe_id)
                 part.certifications = JSON.stringify(recipe.required_certs)
                 part.supplier = result.roles.Supplier
@@ -221,6 +221,40 @@ async function buildHandler(result,index){
 
 }
 
+async function partHandler(result,index){
+    let imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
+    imageAttachmentId = imageAttachmentId.data
+    let id = await dscpApi.getMetadata(index,'id')
+    id = id.data
+    try{
+        let metadataType = await dscpApi.getMetadata(index,'metaDataType')
+        metadataType = metadataType.data
+        metadata = [{
+            metadataType,
+            attachmentId : imageAttachmentId
+        }]
+        let [part] = await db.getPartById(id)
+        if(part.metadata){
+            part.metadata = part.metadata.concat(metadata)
+        }
+        else{
+            part.metadata = metadata
+        }
+        const idCombination = {
+            latest_token_id : result.id,
+            original_token_id : result.original_id
+        }
+        const response = await db.checkPartExists(idCombination)
+        if(response.length == 0){
+            await db.updatePart(part, id, result.original_id, result.id)
+        }
+    }
+    catch(err){
+        console.log(err.message)
+        console.log('metadataType not found')
+    }
+}
+
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()
     let lasttokenidprocessed
@@ -252,6 +286,9 @@ async function blockChainWatcher(){
                         break
                     case 'BUILD':
                         await buildHandler(result,index)
+                        break
+                    case 'PART':
+                        await partHandler(result,index)
                         break
                 }
             }

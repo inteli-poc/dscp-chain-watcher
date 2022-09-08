@@ -103,10 +103,16 @@ async function orderHandler(result,index){
                     let length = image.headers['content-disposition'].length
                     let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
                     let binary_blob = Buffer.from(image.data)
+                    let imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
+                    imageAttachmentId = imageAttachmentId.data
                     attachment.filename = filename
                     attachment.binary_blob = binary_blob
-                    const [attachmentId] = await db.insertAttachment(attachment)
-                    order.image_attachment_id = attachmentId.id
+                    attachment.id = imageAttachmentId
+                    let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
+                    if(attachmentResult.length == 0){
+                        await db.insertAttachment(attachment)
+                    }
+                    order.image_attachment_id = attachment.id
                 }
                 catch(err){
                     console.log('image not found')
@@ -137,29 +143,24 @@ async function buildHandler(result,index){
         build.completion_estimate = completionEstimate.data
     }
     if(result.id == result.original_id){
-        const recipeIds = result.metadata_keys.filter((item) => {
-            if(!isNaN(parseInt(item))){
-                return true
-            }
-            return false
-        }) 
-        const recipeUids = await Promise.all(recipeIds.map(async (id) => {
-            let dscpResponse = await dscpApi.getItem(id)
-            dscpResponse = dscpResponse.data
-            let result = await db.getRecipe(dscpResponse.original_id)
-            return {id: result[0].id, certifications : result[0].required_certs}
-        }))
+        let partRecipeMap = await dscpApi.getMetadata(index,'partRecipeMap')
+        partRecipeMap = partRecipeMap.data
+        let id = await dscpApi.getMetadata(index,'id')
+        id = id.data
         build.latest_token_id = result.id
         build.original_token_id = result.original_id
         build.supplier = result.roles.Supplier
+        build.id = id
         const response = await db.checkBuildExists({original_token_id : result.original_id})
         if(response.length == 0){
-            const [buildId] = await db.insertBuild(build)
-            for(let index = 0; index < recipeUids.length; index++){
+            await db.insertBuild(build)
+            for(let index = 0; index < partRecipeMap.length; index++){
                 let part = {}
-                part.build_id = buildId.id
-                part.recipe_id = recipeUids[index].id
-                part.certifications = JSON.stringify(recipeUids[index].certifications)
+                part.build_id = id
+                part.recipe_id = partRecipeMap[i].recipe_id
+                part.id = partRecipeMap[i].id
+                let [recipe] = await db.getRecipeById(part.recipe_id)
+                part.certifications = JSON.stringify(recipe.required_certs)
                 part.supplier = result.roles.Supplier
                 await db.insertPart(part)
             }
@@ -198,10 +199,16 @@ async function buildHandler(result,index){
                     let length = image.headers['content-disposition'].length
                     let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
                     let binary_blob = Buffer.from(image.data)
+                    let imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
+                    imageAttachmentId = imageAttachmentId.data
                     attachment.filename = filename
                     attachment.binary_blob = binary_blob
-                    const [attachmentId] = await db.insertAttachment(attachment)
-                    build.attachment_id = attachmentId.id
+                    attachment.id = imageAttachmentId
+                    let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
+                    if(attachmentResult.length == 0){
+                        await db.insertAttachment(attachment)
+                    }
+                    build.attachment_id = attachment.id
                 }
                 catch(err){
                     console.log('image not found')

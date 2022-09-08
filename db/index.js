@@ -40,8 +40,8 @@ async function insertLastTokenIdProcessed(lasttokenidprocessed){
     return client('blockchainlasttokenid').insert({ lasttokenidprocessed })
 }
 
-async function getRecipe(original_token_id){
-  return client('recipes').select().where({original_token_id})
+async function getRecipeById(id){
+  return client('recipes').select().where({id})
 }
 
 async function checkRecipeExists(recipe){
@@ -61,7 +61,7 @@ async function insertPart(part){
 }
 
 async function insertBuild(build){
-  return client('build').insert(build).returning(['id'])
+  return client('build').insert(build)
 }
 
 async function updateOrder(order,original_token_id){
@@ -87,7 +87,7 @@ module.exports = {
     updateRecipe,
     updateLastProcessedToken,
     insertLastTokenIdProcessed,
-    getRecipe,
+    getRecipeById,
     insertOrder,
     updateOrder,
     checkRecipeExists,

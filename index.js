@@ -126,7 +126,7 @@ async function orderHandler(result,index){
                     console.log('comments not found')
                 }
             }
-            else if(order.status == 'Amendment'){
+            else if(order.status == 'Amended'){
                 let recipeUids = await dscpApi.getMetadata(index,'recipes')
                 recipeUids = recipeUids.data
                 order.items = recipeUids

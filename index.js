@@ -126,6 +126,11 @@ async function orderHandler(result,index){
                     console.log('comments not found')
                 }
             }
+            else if(order.status == 'Amendment'){
+                let recipeUids = await dscpApi.getMetadata(index,'recipes')
+                recipeUids = recipeUids.data
+                order.items = recipeUids
+            }
             order.latest_token_id = result.id
             await db.updateOrder(order,result.original_id)
         }

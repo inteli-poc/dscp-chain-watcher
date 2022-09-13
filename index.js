@@ -229,47 +229,53 @@ async function buildHandler(result,index){
 async function partHandler(result,index){
     let id = await dscpApi.getMetadata(index,'id')
     id = id.data
-    let image = await dscpApi.getMetadata(index,'image')
-    const attachment = {}
-    let startIndex = image.headers['content-disposition'].indexOf('"')
-    let length = image.headers['content-disposition'].length
-    let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
-    let binary_blob = Buffer.from(image.data)
-    let imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
-    imageAttachmentId = imageAttachmentId.data
-    attachment.filename = filename
-    attachment.binary_blob = binary_blob
-    attachment.id = imageAttachmentId
-    let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
-    if(attachmentResult.length == 0){
-        await db.insertAttachment(attachment)
+    let part = {}
+    let imageAttachmentId
+    let actionType = await dscpApi.getMetadata(index,'actionType')
+    actionType = actionType.data
+    if(actionType == 'metadata-update' || actionType == 'certification'){
+        let image = await dscpApi.getMetadata(index,'image')
+        const attachment = {}
+        let startIndex = image.headers['content-disposition'].indexOf('"')
+        let length = image.headers['content-disposition'].length
+        let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
+        let binary_blob = Buffer.from(image.data)
+        imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
+        imageAttachmentId = imageAttachmentId.data
+        attachment.filename = filename
+        attachment.binary_blob = binary_blob
+        attachment.id = imageAttachmentId
+        let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
+        if(attachmentResult.length == 0){
+            await db.insertAttachment(attachment)
+        }
     }
-    try{
+    if(actionType == 'metadata-update'){
         let metadataType = await dscpApi.getMetadata(index,'metaDataType')
         metadataType = metadataType.data
         metadata = [{
             metadataType,
             attachmentId : imageAttachmentId
         }]
-        let [part] = await db.getPartById(id)
-        if(part.metadata){
-            part.metadata = part.metadata.concat(metadata)
+        let [partObj] = await db.getPartById(id)
+        if(partObj.metadata){
+            part.metadata = partObj.metadata.concat(metadata)
         }
         else{
             part.metadata = metadata
         }
-        const idCombination = {
-            latest_token_id : result.id,
-            original_token_id : result.original_id
-        }
-        const response = await db.checkPartExists(idCombination)
-        if(response.length == 0){
-            await db.updatePart(part, id, result.original_id, result.id)
-        }
     }
-    catch(err){
-        console.log(err.message)
-        console.log('metadataType not found')
+    else if (actionType == 'order-assignment'){
+        let orderId = await dscpApi.getMetadata(index,'orderId')
+        part.order_id = orderId.data
+    }
+    const idCombination = {
+        latest_token_id : result.id,
+        original_token_id : result.original_id
+    }
+    const response = await db.checkPartExists(idCombination)
+    if(response.length == 0){
+        await db.updatePart(part, id, result.original_id, result.id)
     }
 }
 

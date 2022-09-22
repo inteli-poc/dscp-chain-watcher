@@ -16,79 +16,97 @@ const client = knex({
 })
 
 async function getLastProcessedTokenID(){
+    console.log('getting last processed token')
     return client('blockchainlasttokenid').select()
 }
 
 async function insertRecipe(recipe){
+    console.log(`inserting ${recipe} into database`)
     return client('recipes').insert(recipe)
 }
 
 async function insertAttachment(attachment){
+    console.log(`inserting ${attachment} into database`)
     return client('attachments').insert(attachment).returning(['id', 'filename'])
   }
 
 async function updateLastProcessedToken(lasttokenidprocessed,newTokenIdProcessed){
-    console.log(lasttokenidprocessed,newTokenIdProcessed,'debugging watcher')
+    console.log(`updating last processed token from ${lasttokenidprocessed} to ${newTokenIdProcessed}`)
     return client('blockchainlasttokenid').update({ lasttokenidprocessed : newTokenIdProcessed }).where({lasttokenidprocessed})
 }
 
 async function updateRecipe(latest_token_id,original_token_id){
+    console.log(`updating recipes latest token id to ${latest_token_id}. Original token id is ${original_token_id}`)
     return client('recipes').update({ latest_token_id }).where({original_token_id})
 }
 
 async function insertLastTokenIdProcessed(lasttokenidprocessed){
+    console.log(`inserting last token id #${lasttokenidprocessed} into database`)
     return client('blockchainlasttokenid').insert({ lasttokenidprocessed })
 }
 
 async function getRecipeById(id){
+  console.log(`gettng recipe by id #${id}`)
   return client('recipes').select().where({id})
 }
 
 async function checkRecipeExists(recipe){
+  console.log(`checking recipe: ${recipe} exists`)
   return client('recipes').select().where(recipe)
 }
 
 async function checkAttachmentExists(id){
+  console.log(`checking attachment: ${id} exists`)
   return client('attachments').select().where({ id })
 }
 
 async function insertOrder(order){
+  console.log(`inserting order ${order} into database`)
   return client('orders').insert(order)
 }
 
 async function insertPart(part){
+  console.log(`inserting part ${part} into database`)
   return client('parts').insert(part)
 }
 
 async function updatePart(part, id, original_token_id, latest_token_id){
+  console.log(`updating part: ${part} id #${id} to token #${latest_token_id}. Original token id #${original_token_id}`)
   return client('parts').update({ ...part, metadata: JSON.stringify(part.metadata), certifications: JSON.stringify(part.certifications), original_token_id, latest_token_id } ).where( { id })
 }
 
 async function getPartById(id){
+  console.log(`getting part by id #${id}`)
   return client('parts').select().where({ id })
 }
 
 async function insertBuild(build){
+  console.log(`inserting build: ${build} into database`)
   return client('build').insert(build)
 }
 
 async function updateOrder(order,original_token_id){
+  console.log(`updating order: ${order}. Original token id #${original_token_id}`)
   return client('orders').update(order).where({original_token_id})
 }
 
 async function updateBuild(build,original_token_id){
+  console.log(`updating build: ${build}. Original token id #${original_token_id}`)
   return client('build').update(build).where({original_token_id})
 }
 
 async function checkOrderExists(order){
+  console.log(`checking order: ${order} exists`)
   return client('orders').select().where(order)
 }
 
 async function checkPartExists(part){
+  console.log(`checking part: ${part} exists`)
   return client('parts').select().where(part)
 }
 
 async function checkBuildExists(build){
+  console.log(`checking build: ${build} exists`)
   return client('build').select().where(build)
 }
 

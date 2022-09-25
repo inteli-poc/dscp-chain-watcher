@@ -60,7 +60,6 @@ async function orderHandler(result,index){
     let order = {}
     let price = await dscpApi.getMetadata(index,'price')
     let quantity = await dscpApi.getMetadata(index,'quantity')
-    let forecastDate = await dscpApi.getMetadata(index,'forecastDate')
     let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
     let status = await dscpApi.getMetadata(index,'status')
     order.status = status.data
@@ -71,16 +70,43 @@ async function orderHandler(result,index){
     if(result.id == result.original_id){
         let recipeUids = await dscpApi.getMetadata(index,'recipes')
         let id = await dscpApi.getMetadata(index,'id')
+        let description = await dscpApi.getMetadata(index,'description')
+        let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
+        let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
+        let priceType = await dscpApi.getMetadata(index,'priceType')
+        let unitOfMeasure = await dscpApi.getMetadata(index,'unitOfMeasure')
+        let currency = await dscpApi.getMetadata(index,'currency')
+        let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
+        let lineText = await dscpApi.getMetadata(index,'lineText')
+        let businessPartnerCode = await dscpApi.getMetadata(index,'businessPartnerCode')
         id = id.data
         recipeUids = recipeUids.data
         order.id = id
         order.items = recipeUids
+        description = description.data
+        deliveryTerms = deliveryTerms.data
+        deliveryAddress = deliveryAddress.data
+        priceType = priceType.data
+        unitOfMeasure = unitOfMeasure.data
+        currency = currency.data
+        exportClassification = exportClassification.data
+        lineText = lineText.data
+        businessPartnerCode  = businessPartnerCode,data
         order.latest_token_id = result.id
         order.original_token_id = result.original_id
         order.buyer = result.roles.Buyer
         order.supplier = result.roles.Supplier
         let externalId = await dscpApi.getMetadata(index,'externalId')
         order.external_id = externalId.data
+        order.description = description
+        order.deliveryTerms = deliveryTerms
+        order.deliveryAddress = deliveryAddress
+        order.priceType = priceType
+        order.currency = currency
+        order.unitOfMeasure = unitOfMeasure
+        order.exportClassification = exportClassification
+        order.lineText = lineText
+        order.businessPartnerCode = businessPartnerCode
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertOrder(order)
@@ -268,6 +294,16 @@ async function partHandler(result,index){
     else if (actionType == 'order-assignment'){
         let orderId = await dscpApi.getMetadata(index,'orderId')
         part.order_id = orderId.data
+    }
+    else if(actionType == 'certification'){
+        let [partObj] = await db.getPartById(id)
+        let certificationIndex = await dscpApi.getMetadata(index,'certificationIndex')
+        for (let index = 0; index <= partObj.certifications.length; index++) {
+            if (index == certificationIndex) {
+                partObj.certifications[index].certificationAttachmentId = imageAttachmentId
+            }
+          }
+        part.certifications = partObj.certifications
     }
     const idCombination = {
         latest_token_id : result.id,

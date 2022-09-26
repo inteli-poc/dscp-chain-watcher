@@ -300,6 +300,7 @@ async function partHandler(result,index){
     else if(actionType == 'certification'){
         let [partObj] = await db.getPartById(id)
         let certificationIndex = await dscpApi.getMetadata(index,'certificationIndex')
+        certificationIndex = certificationIndex.data
         for (let index = 0; index <= partObj.certifications.length; index++) {
             if (index == certificationIndex) {
                 partObj.certifications[index].certificationAttachmentId = imageAttachmentId

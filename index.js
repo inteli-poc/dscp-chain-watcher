@@ -66,7 +66,6 @@ async function orderHandler(result,index){
     order.required_by = requiredBy.data
     order.price = price.data
     order.quantity = quantity.data
-    order.forecast_date = forecastDate.data
     if(result.id == result.original_id){
         let recipeUids = await dscpApi.getMetadata(index,'recipes')
         let id = await dscpApi.getMetadata(index,'id')
@@ -79,6 +78,7 @@ async function orderHandler(result,index){
         let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
         let lineText = await dscpApi.getMetadata(index,'lineText')
         let businessPartnerCode = await dscpApi.getMetadata(index,'businessPartnerCode')
+        let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
         id = id.data
         recipeUids = recipeUids.data
         order.id = id
@@ -91,7 +91,8 @@ async function orderHandler(result,index){
         currency = currency.data
         exportClassification = exportClassification.data
         lineText = lineText.data
-        businessPartnerCode  = businessPartnerCode,data
+        businessPartnerCode  = businessPartnerCode.data
+        confirmedReceiptDate = confirmedReceiptDate.data
         order.latest_token_id = result.id
         order.original_token_id = result.original_id
         order.buyer = result.roles.Buyer
@@ -99,14 +100,15 @@ async function orderHandler(result,index){
         let externalId = await dscpApi.getMetadata(index,'externalId')
         order.external_id = externalId.data
         order.description = description
-        order.deliveryTerms = deliveryTerms
-        order.deliveryAddress = deliveryAddress
-        order.priceType = priceType
+        order.delivery_terms = deliveryTerms
+        order.delivery_address = deliveryAddress
+        order.price_type = priceType
         order.currency = currency
-        order.unitOfMeasure = unitOfMeasure
-        order.exportClassification = exportClassification
-        order.lineText = lineText
-        order.businessPartnerCode = businessPartnerCode
+        order.unit_of_measure = unitOfMeasure
+        order.export_classification = exportClassification
+        order.line_text = lineText
+        order.business_partner_code = businessPartnerCode
+        order.confirmed_receipt_date = confirmedReceiptDate
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertOrder(order)

@@ -21,12 +21,12 @@ async function getLastProcessedTokenID(){
 }
 
 async function insertRecipe(recipe){
-    console.log(`inserting ${recipe} into database`)
+    console.log(`inserting ${JSON.stringify(recipe)} into database`)
     return client('recipes').insert(recipe)
 }
 
 async function insertAttachment(attachment){
-    console.log(`inserting ${attachment} into database`)
+    console.log(`inserting ${JSON.stringify(attachment)} into database`)
     return client('attachments').insert(attachment).returning(['id', 'filename'])
   }
 

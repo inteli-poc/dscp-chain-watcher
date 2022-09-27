@@ -51,7 +51,7 @@ async function getRecipeById(id){
 }
 
 async function checkRecipeExists(recipe){
-  console.log(`checking recipe: ${recipe} exists`)
+  console.log(`checking recipe: ${JSON.stringify(recipe)} exists`)
   return client('recipes').select().where(recipe)
 }
 
@@ -61,12 +61,12 @@ async function checkAttachmentExists(id){
 }
 
 async function insertOrder(order){
-  console.log(`inserting order ${order} into database`)
+  console.log(`inserting order ${JSON.stringify(order)} into database`)
   return client('orders').insert(order)
 }
 
 async function insertPart(part){
-  console.log(`inserting part ${part} into database`)
+  console.log(`inserting part ${JSON.stringify(part)} into database`)
   return client('parts').insert(part)
 }
 
@@ -81,7 +81,7 @@ async function getPartById(id){
 }
 
 async function insertBuild(build){
-  console.log(`inserting build: ${build} into database`)
+  console.log(`inserting build: ${JSON.stringify(build)} into database`)
   return client('build').insert(build)
 }
 
@@ -96,17 +96,17 @@ async function updateBuild(build,original_token_id){
 }
 
 async function checkOrderExists(order){
-  console.log(`checking order: ${order} exists`)
+  console.log(`checking order: ${JSON.stringify(order)} exists`)
   return client('orders').select().where(order)
 }
 
 async function checkPartExists(part){
-  console.log(`checking part: ${part} exists`)
+  console.log(`checking part: ${JSON.stringify(part)} exists`)
   return client('parts').select().where(part)
 }
 
 async function checkBuildExists(build){
-  console.log(`checking build: ${build} exists`)
+  console.log(`checking build: ${JSON.stringify(build)} exists`)
   return client('build').select().where(build)
 }
 

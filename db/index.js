@@ -65,6 +65,9 @@ async function insertOrder(order){
   return client('orders').insert(order)
 }
 
+async function insertOrderTransaction(order_transaction){
+  return client('order_transactions').insert(order_transaction)
+}
 async function insertPart(part){
   console.log(`inserting part ${JSON.stringify(part)} into database`)
   return client('parts').insert(part)
@@ -129,5 +132,6 @@ module.exports = {
     checkAttachmentExists,
     getPartById,
     checkPartExists,
-    updatePart
+    updatePart,
+    insertOrderTransaction
 }

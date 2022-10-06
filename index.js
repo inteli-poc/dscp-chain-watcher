@@ -58,17 +58,37 @@ async function recipeHandler(result,index){
 
 async function orderHandler(result,index){
     let order = {}
+    let order_transaction = {}
     let price = await dscpApi.getMetadata(index,'price')
     let quantity = await dscpApi.getMetadata(index,'quantity')
     let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
     let status = await dscpApi.getMetadata(index,'status')
+    let transactionId = await dscpApi.getMetadata(index,'status')
+    let id = await dscpApi.getMetadata(index,'id')
+    order_transaction.id = transactionId.data
+    order_transaction.status = 'Submitted'
+    order_transaction.order_id = id.data
+    order_transaction.token_id = result.id
     order.status = status.data
+    switch(order.status){
+        case 'Submitted':
+            order_transaction.type = 'Submission'
+            break
+        case 'AcknowledgedWithExceptions':
+            order_transaction.type = 'Acknowledgement'
+            break
+        case 'Amended':
+            order_transaction.type = 'Amendment'
+            break
+        case 'Accepted':
+            order_transaction.type = 'Acceptance'
+            break
+    }
     order.required_by = requiredBy.data
     order.price = price.data
     order.quantity = quantity.data
     if(result.id == result.original_id){
         let recipeUids = await dscpApi.getMetadata(index,'recipes')
-        let id = await dscpApi.getMetadata(index,'id')
         let description = await dscpApi.getMetadata(index,'description')
         let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
         let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
@@ -79,10 +99,8 @@ async function orderHandler(result,index){
         let lineText = await dscpApi.getMetadata(index,'lineText')
         let businessPartnerCode = await dscpApi.getMetadata(index,'businessPartnerCode')
         let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
-        id = id.data
-        recipeUids = recipeUids.data
-        order.id = id
-        order.items = recipeUids
+        order.id = id.data
+        order.items = recipeUids.data
         description = description.data
         deliveryTerms = deliveryTerms.data
         deliveryAddress = deliveryAddress.data
@@ -111,6 +129,7 @@ async function orderHandler(result,index){
         order.confirmed_receipt_date = confirmedReceiptDate
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
+            await db.insertOrderTransaction(order_transaction)
             await db.insertOrder(order)
         }
     }
@@ -160,6 +179,7 @@ async function orderHandler(result,index){
                 order.items = recipeUids
             }
             order.latest_token_id = result.id
+            await db.insertOrderTransaction(order_transaction)
             await db.updateOrder(order,result.original_id)
         }
     }

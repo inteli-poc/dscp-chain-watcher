@@ -2,14 +2,20 @@ const db = require('./db')
 const dscpApi = require('./dscp-api')
 
 async function recipeHandler(result,index){
+    let recipe_transaction = {}
+    let id = await dscpApi.getMetadata(index,'id')
+    let transactionId = await dscpApi.getMetadata(index,'transactionId')
+    recipe_transaction.recipe_id = id
+    recipe_transaction.id = transactionId
+    recipe_transaction.status = 'Submitted'
+    recipe_transaction.type = 'Creation'
+    recipe_transaction.token_id = result.id
     if(result.id == result.original_id){
         const recipe = {}
         let alloy = await dscpApi.getMetadata(index,'alloy')
         let price = await dscpApi.getMetadata(index,'price')
         let externalId = await dscpApi.getMetadata(index,'externalId')
         let image = await dscpApi.getMetadata(index,'image')
-        let id = await dscpApi.getMetadata(index,'id')
-        id = id.data
         const attachment = {}
         let startIndex = image.headers['content-disposition'].indexOf('"')
         let length = image.headers['content-disposition'].length
@@ -38,10 +44,11 @@ async function recipeHandler(result,index){
         recipe.owner = result.roles.Owner
         recipe.supplier = result.roles.Supplier
         recipe.price = price.data
-        recipe.id = id
+        recipe.id = id.data
         const response = await db.checkRecipeExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertRecipe(recipe)
+            await db.insertRecipeTransaction(recipe_transaction)
         }
     }
     else{
@@ -52,6 +59,7 @@ async function recipeHandler(result,index){
         const response = await db.checkRecipeExists(recipe)
         if(response.length == 0){
             await db.updateRecipe(result.id,result.original_id)
+            await db.insertRecipeTransaction(recipe_transaction)
         }
     }
 }
@@ -65,25 +73,13 @@ async function orderHandler(result,index){
     let status = await dscpApi.getMetadata(index,'status')
     let transactionId = await dscpApi.getMetadata(index,'transactionId')
     let id = await dscpApi.getMetadata(index,'id')
+    let actionType = await dscpApi.getMetadata(index,'actionType')
     order_transaction.id = transactionId.data
     order_transaction.status = 'Submitted'
     order_transaction.order_id = id.data
     order_transaction.token_id = result.id
+    order_transaction.type = actionType.data
     order.status = status.data
-    switch(order.status){
-        case 'Submitted':
-            order_transaction.type = 'Submission'
-            break
-        case 'AcknowledgedWithExceptions':
-            order_transaction.type = 'Acknowledgement'
-            break
-        case 'Amended':
-            order_transaction.type = 'Amendment'
-            break
-        case 'Accepted':
-            order_transaction.type = 'Acceptance'
-            break
-    }
     order.required_by = requiredBy.data
     order.price = price.data
     order.quantity = quantity.data
@@ -187,10 +183,19 @@ async function orderHandler(result,index){
 
 async function buildHandler(result,index){
     let build = {}
+    let build_transaction = {}
     let externalId = await dscpApi.getMetadata(index,'externalId')
     let status = await dscpApi.getMetadata(index,'status')
+    let transactionId = await dscpApi.getMetadata(index,'transactionId')
+    let id = await dscpApi.getMetadata(index,'id')
+    let actionType = await dscpApi.getMetadata(index,'actionType')
     build.external_id = externalId.data
     build.status = status.data
+    build_transaction.id = transactionId.data
+    build_transaction.build_id = id.data
+    build_transaction.status = 'Submitted'
+    build_transaction.token_id = result.id
+    build_transaction.type = actionType.data
     if(build.status == 'Scheduled'){
         let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
         build.completion_estimate = completionEstimate.data
@@ -198,18 +203,17 @@ async function buildHandler(result,index){
     if(result.id == result.original_id){
         let partRecipeMap = await dscpApi.getMetadata(index,'partRecipeMap')
         partRecipeMap = partRecipeMap.data
-        let id = await dscpApi.getMetadata(index,'id')
-        id = id.data
         build.latest_token_id = result.id
         build.original_token_id = result.original_id
         build.supplier = result.roles.Supplier
-        build.id = id
+        build.id = id.data
         const response = await db.checkBuildExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertBuild(build)
+            await db.insertBuildTransaction(build_transaction)
             for(let index = 0; index < partRecipeMap.length; index++){
                 let part = {}
-                part.build_id = id
+                part.build_id = id.data
                 part.recipe_id = partRecipeMap[index].recipe_id
                 part.id = partRecipeMap[index].id
                 let [recipe] = await db.getRecipeById(part.recipe_id)
@@ -269,6 +273,7 @@ async function buildHandler(result,index){
             }
             build.latest_token_id = result.id
             await db.updateBuild(build,result.original_id)
+            await db.insertBuildTransaction(build_transaction)
         }
     }
 
@@ -278,9 +283,16 @@ async function partHandler(result,index){
     let id = await dscpApi.getMetadata(index,'id')
     id = id.data
     let part = {}
+    let part_transaction = {}
     let imageAttachmentId
     let actionType = await dscpApi.getMetadata(index,'actionType')
+    let transactionId = await dscpApi.getMetadata(index,'transactionId')
+    part_transaction.id = transactionId.data
+    part_transaction.part_id = id
     actionType = actionType.data
+    part_transaction.type = actionType
+    part_transaction.status = 'Submitted'
+    part_transaction.token_id = result.id
     if(actionType == 'metadata-update' || actionType == 'certification'){
         let image = await dscpApi.getMetadata(index,'image')
         const attachment = {}
@@ -335,6 +347,7 @@ async function partHandler(result,index){
     const response = await db.checkPartExists(idCombination)
     if(response.length == 0){
         await db.updatePart(part, id, result.original_id, result.id)
+        await db.insertPartTransaction(part_transaction)
     }
 }
 

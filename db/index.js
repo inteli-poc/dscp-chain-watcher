@@ -68,6 +68,19 @@ async function insertOrder(order){
 async function insertOrderTransaction(order_transaction){
   return client('order_transactions').insert(order_transaction)
 }
+
+async function insertBuildTransaction(build_transaction){
+  return client('build_transactions').insert(build_transaction)
+}
+
+async function insertPartTransaction(part_transaction){
+  return client('part_transactions').insert(part_transaction)
+}
+
+async function insertRecipeTransaction(recipe_transaction){
+  return client('recipe_transactions').insert(recipe_transaction)
+}
+
 async function insertPart(part){
   console.log(`inserting part ${JSON.stringify(part)} into database`)
   return client('parts').insert(part)
@@ -133,5 +146,8 @@ module.exports = {
     getPartById,
     checkPartExists,
     updatePart,
-    insertOrderTransaction
+    insertOrderTransaction,
+    insertBuildTransaction,
+    insertPartTransaction,
+    insertRecipeTransaction
 }

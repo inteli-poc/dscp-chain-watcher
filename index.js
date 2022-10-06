@@ -5,8 +5,8 @@ async function recipeHandler(result,index){
     let recipe_transaction = {}
     let id = await dscpApi.getMetadata(index,'id')
     let transactionId = await dscpApi.getMetadata(index,'transactionId')
-    recipe_transaction.recipe_id = id
-    recipe_transaction.id = transactionId
+    recipe_transaction.recipe_id = id.data
+    recipe_transaction.id = transactionId.data
     recipe_transaction.status = 'Submitted'
     recipe_transaction.type = 'Creation'
     recipe_transaction.token_id = result.id

@@ -63,7 +63,7 @@ async function orderHandler(result,index){
     let quantity = await dscpApi.getMetadata(index,'quantity')
     let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
     let status = await dscpApi.getMetadata(index,'status')
-    let transactionId = await dscpApi.getMetadata(index,'status')
+    let transactionId = await dscpApi.getMetadata(index,'transactionId')
     let id = await dscpApi.getMetadata(index,'id')
     order_transaction.id = transactionId.data
     order_transaction.status = 'Submitted'
@@ -129,8 +129,8 @@ async function orderHandler(result,index){
         order.confirmed_receipt_date = confirmedReceiptDate
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
-            await db.insertOrderTransaction(order_transaction)
             await db.insertOrder(order)
+            await db.insertOrderTransaction(order_transaction)
         }
     }
     else{
@@ -179,8 +179,8 @@ async function orderHandler(result,index){
                 order.items = recipeUids
             }
             order.latest_token_id = result.id
-            await db.insertOrderTransaction(order_transaction)
             await db.updateOrder(order,result.original_id)
+            await db.insertOrderTransaction(order_transaction)
         }
     }
 }

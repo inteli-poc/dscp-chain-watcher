@@ -271,6 +271,15 @@ async function buildHandler(result,index){
                     console.log('image not found')
                 }
             }
+            if(build.status == 'Started'){
+                try{
+                    let updateType = await dscpApi.getMetadata(index,'updateType')
+                    build.update_type = updateType.data
+                }
+                catch(err){
+                    console.log('updateType not found')
+                }
+            }
             build.latest_token_id = result.id
             await db.updateBuild(build,result.original_id)
             await db.insertBuildTransaction(build_transaction)

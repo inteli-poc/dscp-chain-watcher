@@ -1,5 +1,8 @@
 const db = require('./db')
 const dscpApi = require('./dscp-api')
+const ObjectsToCsv = require('objects-to-csv');
+const {Storage} = require('@google-cloud/storage')
+const storage = new Storage()
 
 async function recipeHandler(result,index){
     let recipe_transaction = {}
@@ -179,6 +182,9 @@ async function orderHandler(result,index){
             await db.insertOrderTransaction(order_transaction)
         }
     }
+    let [response] = await db.getOrderById(id)
+    const csv = new ObjectsToCsv(response)
+    await uploadFromMemory(await csv.toString)
 }
 
 async function buildHandler(result,index){
@@ -408,5 +414,9 @@ async function blockChainWatcher(){
     process.exit()
 }
 
+async function uploadFromMemory(contents) {
+    const destFileName = Date.now() + '.csv'
+    await storage.bucket('inteli-kinaxis').file(destFileName).save(contents);
+}
 
 blockChainWatcher()

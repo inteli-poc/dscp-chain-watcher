@@ -126,6 +126,9 @@ async function checkBuildExists(build){
   return client('build').select().where(build)
 }
 
+async function getOrderById(id){
+  return client('orders').select().where(id)
+}
 module.exports = {
     getLastProcessedTokenID,
     insertRecipe,
@@ -149,5 +152,6 @@ module.exports = {
     insertOrderTransaction,
     insertBuildTransaction,
     insertPartTransaction,
-    insertRecipeTransaction
+    insertRecipeTransaction,
+    getOrderById
 }

@@ -182,9 +182,14 @@ async function orderHandler(result,index){
             await db.insertOrderTransaction(order_transaction)
         }
     }
-    let [response] = await db.getOrderById(id)
+    let response = await db.getOrderById(id.data)
     const csv = new ObjectsToCsv(response)
-    await uploadFromMemory(await csv.toString)
+    try{
+        await uploadFromMemory(await csv.toString())
+    }
+    catch(err){
+        console.log(err.message)
+    }
 }
 
 async function buildHandler(result,index){
@@ -363,6 +368,14 @@ async function partHandler(result,index){
     if(response.length == 0){
         await db.updatePart(part, id, result.original_id, result.id)
         await db.insertPartTransaction(part_transaction)
+    }
+    let result = await db.getPartById(id)
+    const csv = new ObjectsToCsv(result)
+    try{
+        await uploadFromMemory(await csv.toString())
+    }
+    catch(err){
+        console.log(err.message)
     }
 }
 

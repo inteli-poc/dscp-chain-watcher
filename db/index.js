@@ -127,7 +127,7 @@ async function checkBuildExists(build){
 }
 
 async function getOrderById(id){
-  return client('orders').select().where(id)
+  return client('orders').select().where({id})
 }
 module.exports = {
     getLastProcessedTokenID,

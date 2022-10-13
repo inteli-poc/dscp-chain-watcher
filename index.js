@@ -1,5 +1,6 @@
 const db = require('./db')
 const dscpApi = require('./dscp-api')
+const identityService = require('./identity-service')
 const ObjectsToCsv = require('objects-to-csv');
 const {Storage} = require('@google-cloud/storage')
 const storage = new Storage()
@@ -183,6 +184,8 @@ async function orderHandler(result,index){
         }
     }
     let orderResult = await db.getOrderById(id.data)
+    let supplierAlias = await identityService.getMemberByAddress(orderResult[0].supplier)
+    console.log(supplierAlias)
     const csv = new ObjectsToCsv(orderResult)
     try{
         await uploadFromMemory(await csv.toString())

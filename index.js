@@ -182,8 +182,8 @@ async function orderHandler(result,index){
             await db.insertOrderTransaction(order_transaction)
         }
     }
-    let response = await db.getOrderById(id.data)
-    const csv = new ObjectsToCsv(response)
+    let orderResult = await db.getOrderById(id.data)
+    const csv = new ObjectsToCsv(orderResult)
     try{
         await uploadFromMemory(await csv.toString())
     }
@@ -369,8 +369,8 @@ async function partHandler(result,index){
         await db.updatePart(part, id, result.original_id, result.id)
         await db.insertPartTransaction(part_transaction)
     }
-    let result = await db.getPartById(id)
-    const csv = new ObjectsToCsv(result)
+    let partResult = await db.getPartById(id)
+    const csv = new ObjectsToCsv(partResult)
     try{
         await uploadFromMemory(await csv.toString())
     }

@@ -78,11 +78,12 @@ async function orderHandler(result,index){
     let transactionId = await dscpApi.getMetadata(index,'transactionId')
     let id = await dscpApi.getMetadata(index,'id')
     let actionType = await dscpApi.getMetadata(index,'actionType')
+    actionType = actionType.data
     order_transaction.id = transactionId.data
     order_transaction.status = 'Submitted'
     order_transaction.order_id = id.data
     order_transaction.token_id = result.id
-    order_transaction.type = actionType.data
+    order_transaction.type = actionType
     order.status = status.data
     order.required_by = requiredBy.data
     order.price = price.data

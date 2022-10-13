@@ -185,10 +185,14 @@ async function orderHandler(result,index){
     }
     let orderResult = await db.getOrderById(id.data)
     let supplierAlias = await identityService.getMemberByAddress(orderResult[0].supplier)
-    console.log(supplierAlias)
+    supplierAlias = supplierAlias.data.alias
+    let buyerAlias = await identityService.getMemberByAddress(orderResult[0].buyer)
+    buyerAlias = buyerAlias.data.alias
+    orderResult[0].supplier = supplierAlias
+    orderResult[0].buyer = buyerAlias
     const csv = new ObjectsToCsv(orderResult)
     try{
-        await uploadFromMemory(await csv.toString())
+        await uploadFromMemory(await csv.toString(),actionType)
     }
     catch(err){
         console.log(err.message)
@@ -373,9 +377,12 @@ async function partHandler(result,index){
         await db.insertPartTransaction(part_transaction)
     }
     let partResult = await db.getPartById(id)
+    let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)
+    supplierAlias = supplierAlias.data.alias
+    partResult[0].supplier = supplierAlias
     const csv = new ObjectsToCsv(partResult)
     try{
-        await uploadFromMemory(await csv.toString())
+        await uploadFromMemory(await csv.toString(),actionType)
     }
     catch(err){
         console.log(err.message)
@@ -430,8 +437,8 @@ async function blockChainWatcher(){
     process.exit()
 }
 
-async function uploadFromMemory(contents) {
-    const destFileName = Date.now() + '.csv'
+async function uploadFromMemory(contents,actionType) {
+    const destFileName = Date.now() + "_" + actionType + '.csv'
     await storage.bucket('inteli-kinaxis').file(destFileName).save(contents);
 }
 

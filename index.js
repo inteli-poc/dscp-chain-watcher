@@ -184,15 +184,15 @@ async function orderHandler(result,index){
             await db.insertOrderTransaction(order_transaction)
         }
     }
-    let orderResult = await db.getOrderById(id.data)
-    let supplierAlias = await identityService.getMemberByAddress(orderResult[0].supplier)
-    supplierAlias = supplierAlias.data.alias
-    let buyerAlias = await identityService.getMemberByAddress(orderResult[0].buyer)
-    buyerAlias = buyerAlias.data.alias
-    orderResult[0].supplier = supplierAlias
-    orderResult[0].buyer = buyerAlias
-    const csv = new ObjectsToCsv(orderResult)
     try{
+        let orderResult = await db.getOrderById(id.data)
+        let supplierAlias = await identityService.getMemberByAddress(orderResult[0].supplier)
+        supplierAlias = supplierAlias.data.alias
+        let buyerAlias = await identityService.getMemberByAddress(orderResult[0].buyer)
+        buyerAlias = buyerAlias.data.alias
+        orderResult[0].supplier = supplierAlias
+        orderResult[0].buyer = buyerAlias
+        const csv = new ObjectsToCsv(orderResult)
         await uploadFromMemory(await csv.toString(),actionType)
     }
     catch(err){
@@ -377,12 +377,12 @@ async function partHandler(result,index){
         await db.updatePart(part, id, result.original_id, result.id)
         await db.insertPartTransaction(part_transaction)
     }
-    let partResult = await db.getPartById(id)
-    let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)
-    supplierAlias = supplierAlias.data.alias
-    partResult[0].supplier = supplierAlias
-    const csv = new ObjectsToCsv(partResult)
     try{
+        let partResult = await db.getPartById(id)
+        let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)
+        supplierAlias = supplierAlias.data.alias
+        partResult[0].supplier = supplierAlias
+        const csv = new ObjectsToCsv(partResult)
         await uploadFromMemory(await csv.toString(),actionType)
     }
     catch(err){

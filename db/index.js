@@ -86,9 +86,9 @@ async function insertPart(part){
   return client('parts').insert(part)
 }
 
-async function updatePart(part, id, original_token_id, latest_token_id){
+async function updatePart(part, original_token_id){
   console.log(`updating part: ${part} id #${id} to token #${latest_token_id}. Original token id #${original_token_id}`)
-  return client('parts').update({ ...part, metadata: JSON.stringify(part.metadata), certifications: JSON.stringify(part.certifications), original_token_id, latest_token_id } ).where( { id })
+  return client('parts').update({ ...part, metadata: JSON.stringify(part.metadata), certifications: JSON.stringify(part.certifications)} ).where( { original_token_id })
 }
 
 async function getPartById(id){

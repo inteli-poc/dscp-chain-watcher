@@ -71,9 +71,6 @@ async function recipeHandler(result,index){
 async function orderHandler(result,index){
     let order = {}
     let order_transaction = {}
-    let price = await dscpApi.getMetadata(index,'price')
-    let quantity = await dscpApi.getMetadata(index,'quantity')
-    let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
     let status = await dscpApi.getMetadata(index,'status')
     let transactionId = await dscpApi.getMetadata(index,'transactionId')
     let id = await dscpApi.getMetadata(index,'id')
@@ -85,17 +82,12 @@ async function orderHandler(result,index){
     order_transaction.token_id = result.id
     order_transaction.type = actionType
     order.status = status.data
-    order.required_by = requiredBy.data
-    order.price = price.data
-    order.quantity = quantity.data
     if(result.id == result.original_id){
         let partUids = await dscpApi.getMetadata(index,'parts')
         let businessPartnerCode = await dscpApi.getMetadata(index,'businessPartnerCode')
-        let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
         order.id = id.data
         order.items = partUids.data
         businessPartnerCode  = businessPartnerCode.data
-        confirmedReceiptDate = confirmedReceiptDate.data
         order.latest_token_id = result.id
         order.original_token_id = result.original_id
         order.buyer = result.roles.Buyer
@@ -297,6 +289,10 @@ async function partHandler(result,index){
     part_transaction.status = 'Submitted'
     part_transaction.token_id = result.id
     if(result.id == result.original_id){
+        let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
+        let quantity = await dscpApi.getMetadata(index,'quantity')
+        let price = await dscpApi.getMetadata(index,'price')
+        let recipeId = await dscpApi.getMetadata(index,'recipeId')
         let description = await dscpApi.getMetadata(index,'description')
         let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
         let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
@@ -306,6 +302,10 @@ async function partHandler(result,index){
         let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
         let lineText = await dscpApi.getMetadata(index,'lineText')
         let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
+        requiredBy = requiredBy.data
+        quantity = quantity.data
+        price = price.data
+        recipeId = recipeId.data
         description = description.data
         deliveryTerms = deliveryTerms.data
         deliveryAddress = deliveryAddress.data
@@ -314,7 +314,6 @@ async function partHandler(result,index){
         currency = currency.data
         exportClassification = exportClassification.data
         lineText = lineText.data
-        businessPartnerCode  = businessPartnerCode.data
         confirmedReceiptDate = confirmedReceiptDate.data
         part.description = description
         part.delivery_terms = deliveryTerms
@@ -324,8 +323,22 @@ async function partHandler(result,index){
         part.unit_of_measure = unitOfMeasure
         part.export_classification = exportClassification
         part.line_text = lineText
-        part.business_partner_code = businessPartnerCode
         part.confirmed_receipt_date = confirmedReceiptDate
+        part.supplier = result.roles.Supplier
+        part.original_token_id = result.original_id
+        part.latest_token_id = result.id
+        part.recipe_id = recipeId
+        part.price = price
+        part.quantity = quantity
+        part.required_by = requiredBy
+        part.id = id
+        let [recipe] = await db.getRecipeById(recipeId)
+        part.certifications = JSON.stringify(recipe.required_certs)
+        const response = await db.checkPartExists({original_token_id : result.original_id})
+        if(response.length == 0){
+            await db.insertPart(part, result.original_id)
+            await db.insertPartTransaction(part_transaction)
+        }
     }
     else{
         const idCombination = {
@@ -377,7 +390,8 @@ async function partHandler(result,index){
                   }
                 part.certifications = partObj.certifications
             }
-            await db.updatePart(part, id, result.original_id, result.id)
+            part.latest_token_id = result.id
+            await db.updatePart(part, result.original_id)
             await db.insertPartTransaction(part_transaction)
         }
     }

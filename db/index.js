@@ -87,7 +87,7 @@ async function insertPart(part){
 }
 
 async function updatePart(part, original_token_id){
-  console.log(`updating part: ${part} id #${id} to token #${latest_token_id}. Original token id #${original_token_id}`)
+  console.log(`updating part: ${part} id #${part.id} to token #${part.latest_token_id}. Original token id #${original_token_id}`)
   return client('parts').update({ ...part, metadata: JSON.stringify(part.metadata), certifications: JSON.stringify(part.certifications)} ).where( { original_token_id })
 }
 

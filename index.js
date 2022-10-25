@@ -84,9 +84,10 @@ async function orderHandler(result,index){
     order.status = status.data
     if(result.id == result.original_id){
         let partUids = await dscpApi.getMetadata(index,'parts')
+        partUids = partUids.data
         let businessPartnerCode = await dscpApi.getMetadata(index,'businessPartnerCode')
         order.id = id.data
-        order.items = partUids.data
+        order.items = partUids
         businessPartnerCode  = businessPartnerCode.data
         order.latest_token_id = result.id
         order.original_token_id = result.original_id
@@ -99,6 +100,11 @@ async function orderHandler(result,index){
         if(response.length == 0){
             await db.insertOrder(order)
             await db.insertOrderTransaction(order_transaction)
+            for(let partId of partUids){
+                let [part] = await db.getPartById(partId)
+                part.order_id = id.data
+                await db.updatePart(part, part.original_token_id)
+            }
         }
     }
     else{
@@ -274,7 +280,7 @@ async function buildHandler(result,index){
 
 }
 
-async function gatherPartDetails(){
+async function gatherPartDetails(index){
     let part = {}
     let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
     let quantity = await dscpApi.getMetadata(index,'quantity')
@@ -333,12 +339,12 @@ async function partHandler(result,index){
     part_transaction.status = 'Submitted'
     part_transaction.token_id = result.id
     if(result.id == result.original_id){
-        part = await gatherPartDetails()
+        part = await gatherPartDetails(index)
         part.id = id
         part.supplier = result.roles.Supplier
         part.original_token_id = result.original_id
         part.latest_token_id = result.id
-        let [recipe] = await db.getRecipeById(recipeId)
+        let [recipe] = await db.getRecipeById(part.recipe_id)
         part.certifications = JSON.stringify(recipe.required_certs)
         const response = await db.checkPartExists({original_token_id : result.original_id})
         if(response.length == 0){
@@ -398,7 +404,7 @@ async function partHandler(result,index){
             }
             else if(actionType == 'acknowledgement' || actionType == 'amendment'){
                 part = await db.getPartById(id)
-                let newPart = await gatherPartDetails()
+                let newPart = await gatherPartDetails(index)
                 part = { ...part, ...newPart}
             }
             part.latest_token_id = result.id

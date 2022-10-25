@@ -403,9 +403,9 @@ async function partHandler(result,index){
                 part.certifications = partObj.certifications
             }
             else if(actionType == 'acknowledgement' || actionType == 'amendment'){
-                part = await db.getPartById(id)
+                let [partDetails] = await db.getPartById(id)
                 let newPart = await gatherPartDetails(index)
-                part = { ...part, ...newPart}
+                part = { ...partDetails, ...newPart}
             }
             part.latest_token_id = result.id
             await db.updatePart(part, result.original_id)

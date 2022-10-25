@@ -274,6 +274,50 @@ async function buildHandler(result,index){
 
 }
 
+async function gatherPartDetails(){
+    let part = {}
+    let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
+    let quantity = await dscpApi.getMetadata(index,'quantity')
+    let price = await dscpApi.getMetadata(index,'price')
+    let recipeId = await dscpApi.getMetadata(index,'recipeId')
+    let description = await dscpApi.getMetadata(index,'description')
+    let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
+    let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
+    let priceType = await dscpApi.getMetadata(index,'priceType')
+    let unitOfMeasure = await dscpApi.getMetadata(index,'unitOfMeasure')
+    let currency = await dscpApi.getMetadata(index,'currency')
+    let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
+    let lineText = await dscpApi.getMetadata(index,'lineText')
+    let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
+    requiredBy = requiredBy.data
+    quantity = quantity.data
+    price = price.data
+    recipeId = recipeId.data
+    description = description.data
+    deliveryTerms = deliveryTerms.data
+    deliveryAddress = deliveryAddress.data
+    priceType = priceType.data
+    unitOfMeasure = unitOfMeasure.data
+    currency = currency.data
+    exportClassification = exportClassification.data
+    lineText = lineText.data
+    confirmedReceiptDate = confirmedReceiptDate.data
+    part.description = description
+    part.delivery_terms = deliveryTerms
+    part.delivery_address = deliveryAddress
+    part.price_type = priceType
+    part.currency = currency
+    part.unit_of_measure = unitOfMeasure
+    part.export_classification = exportClassification
+    part.line_text = lineText
+    part.confirmed_receipt_date = confirmedReceiptDate
+    part.recipe_id = recipeId
+    part.price = price
+    part.quantity = quantity
+    part.required_by = requiredBy
+    return part
+}
+
 async function partHandler(result,index){
     let id = await dscpApi.getMetadata(index,'id')
     id = id.data
@@ -289,49 +333,11 @@ async function partHandler(result,index){
     part_transaction.status = 'Submitted'
     part_transaction.token_id = result.id
     if(result.id == result.original_id){
-        let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
-        let quantity = await dscpApi.getMetadata(index,'quantity')
-        let price = await dscpApi.getMetadata(index,'price')
-        let recipeId = await dscpApi.getMetadata(index,'recipeId')
-        let description = await dscpApi.getMetadata(index,'description')
-        let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
-        let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
-        let priceType = await dscpApi.getMetadata(index,'priceType')
-        let unitOfMeasure = await dscpApi.getMetadata(index,'unitOfMeasure')
-        let currency = await dscpApi.getMetadata(index,'currency')
-        let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
-        let lineText = await dscpApi.getMetadata(index,'lineText')
-        let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
-        requiredBy = requiredBy.data
-        quantity = quantity.data
-        price = price.data
-        recipeId = recipeId.data
-        description = description.data
-        deliveryTerms = deliveryTerms.data
-        deliveryAddress = deliveryAddress.data
-        priceType = priceType.data
-        unitOfMeasure = unitOfMeasure.data
-        currency = currency.data
-        exportClassification = exportClassification.data
-        lineText = lineText.data
-        confirmedReceiptDate = confirmedReceiptDate.data
-        part.description = description
-        part.delivery_terms = deliveryTerms
-        part.delivery_address = deliveryAddress
-        part.price_type = priceType
-        part.currency = currency
-        part.unit_of_measure = unitOfMeasure
-        part.export_classification = exportClassification
-        part.line_text = lineText
-        part.confirmed_receipt_date = confirmedReceiptDate
+        part = await gatherPartDetails()
+        part.id = id
         part.supplier = result.roles.Supplier
         part.original_token_id = result.original_id
         part.latest_token_id = result.id
-        part.recipe_id = recipeId
-        part.price = price
-        part.quantity = quantity
-        part.required_by = requiredBy
-        part.id = id
         let [recipe] = await db.getRecipeById(recipeId)
         part.certifications = JSON.stringify(recipe.required_certs)
         const response = await db.checkPartExists({original_token_id : result.original_id})
@@ -389,6 +395,11 @@ async function partHandler(result,index){
                     }
                   }
                 part.certifications = partObj.certifications
+            }
+            else if(actionType == 'acknowledgement' || actionType == 'amendment'){
+                part = await db.getPartById(id)
+                let newPart = await gatherPartDetails()
+                part = { ...part, ...newPart}
             }
             part.latest_token_id = result.id
             await db.updatePart(part, result.original_id)

@@ -71,9 +71,6 @@ async function recipeHandler(result,index){
 async function orderHandler(result,index){
     let order = {}
     let order_transaction = {}
-    let price = await dscpApi.getMetadata(index,'price')
-    let quantity = await dscpApi.getMetadata(index,'quantity')
-    let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
     let status = await dscpApi.getMetadata(index,'status')
     let transactionId = await dscpApi.getMetadata(index,'transactionId')
     let id = await dscpApi.getMetadata(index,'id')
@@ -85,53 +82,29 @@ async function orderHandler(result,index){
     order_transaction.token_id = result.id
     order_transaction.type = actionType
     order.status = status.data
-    order.required_by = requiredBy.data
-    order.price = price.data
-    order.quantity = quantity.data
     if(result.id == result.original_id){
-        let recipeUids = await dscpApi.getMetadata(index,'recipes')
-        let description = await dscpApi.getMetadata(index,'description')
-        let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
-        let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
-        let priceType = await dscpApi.getMetadata(index,'priceType')
-        let unitOfMeasure = await dscpApi.getMetadata(index,'unitOfMeasure')
-        let currency = await dscpApi.getMetadata(index,'currency')
-        let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
-        let lineText = await dscpApi.getMetadata(index,'lineText')
+        let partUids = await dscpApi.getMetadata(index,'parts')
+        partUids = partUids.data
         let businessPartnerCode = await dscpApi.getMetadata(index,'businessPartnerCode')
-        let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
         order.id = id.data
-        order.items = recipeUids.data
-        description = description.data
-        deliveryTerms = deliveryTerms.data
-        deliveryAddress = deliveryAddress.data
-        priceType = priceType.data
-        unitOfMeasure = unitOfMeasure.data
-        currency = currency.data
-        exportClassification = exportClassification.data
-        lineText = lineText.data
+        order.items = partUids
         businessPartnerCode  = businessPartnerCode.data
-        confirmedReceiptDate = confirmedReceiptDate.data
         order.latest_token_id = result.id
         order.original_token_id = result.original_id
         order.buyer = result.roles.Buyer
         order.supplier = result.roles.Supplier
         let externalId = await dscpApi.getMetadata(index,'externalId')
         order.external_id = externalId.data
-        order.description = description
-        order.delivery_terms = deliveryTerms
-        order.delivery_address = deliveryAddress
-        order.price_type = priceType
-        order.currency = currency
-        order.unit_of_measure = unitOfMeasure
-        order.export_classification = exportClassification
-        order.line_text = lineText
         order.business_partner_code = businessPartnerCode
-        order.confirmed_receipt_date = confirmedReceiptDate
         const response = await db.checkOrderExists({original_token_id : result.original_id})
         if(response.length == 0){
             await db.insertOrder(order)
             await db.insertOrderTransaction(order_transaction)
+            for(let partId of partUids){
+                let [part] = await db.getPartById(partId)
+                part.order_id = id.data
+                await db.updatePart(part, part.original_token_id)
+            }
         }
     }
     else{
@@ -173,11 +146,6 @@ async function orderHandler(result,index){
                 catch(err){
                     console.log('comments not found')
                 }
-            }
-            else if(order.status == 'Amended'){
-                let recipeUids = await dscpApi.getMetadata(index,'recipes')
-                recipeUids = recipeUids.data
-                order.items = recipeUids
             }
             order.latest_token_id = result.id
             await db.updateOrder(order,result.original_id)
@@ -307,6 +275,50 @@ async function buildHandler(result,index){
 
 }
 
+async function gatherPartDetails(index){
+    let part = {}
+    let requiredBy = await dscpApi.getMetadata(index,'requiredBy')
+    let quantity = await dscpApi.getMetadata(index,'quantity')
+    let price = await dscpApi.getMetadata(index,'price')
+    let recipeId = await dscpApi.getMetadata(index,'recipeId')
+    let description = await dscpApi.getMetadata(index,'description')
+    let deliveryTerms = await dscpApi.getMetadata(index,'deliveryTerms')
+    let deliveryAddress = await dscpApi.getMetadata(index,'deliveryAddress')
+    let priceType = await dscpApi.getMetadata(index,'priceType')
+    let unitOfMeasure = await dscpApi.getMetadata(index,'unitOfMeasure')
+    let currency = await dscpApi.getMetadata(index,'currency')
+    let exportClassification = await dscpApi.getMetadata(index,'exportClassification')
+    let lineText = await dscpApi.getMetadata(index,'lineText')
+    let confirmedReceiptDate = await dscpApi.getMetadata(index,'confirmedReceiptDate')
+    requiredBy = requiredBy.data
+    quantity = quantity.data
+    price = price.data
+    recipeId = recipeId.data
+    description = description.data
+    deliveryTerms = deliveryTerms.data
+    deliveryAddress = deliveryAddress.data
+    priceType = priceType.data
+    unitOfMeasure = unitOfMeasure.data
+    currency = currency.data
+    exportClassification = exportClassification.data
+    lineText = lineText.data
+    confirmedReceiptDate = confirmedReceiptDate.data
+    part.description = description
+    part.delivery_terms = deliveryTerms
+    part.delivery_address = deliveryAddress
+    part.price_type = priceType
+    part.currency = currency
+    part.unit_of_measure = unitOfMeasure
+    part.export_classification = exportClassification
+    part.line_text = lineText
+    part.confirmed_receipt_date = confirmedReceiptDate
+    part.recipe_id = recipeId
+    part.price = price
+    part.quantity = quantity
+    part.required_by = requiredBy
+    return part
+}
+
 async function partHandler(result,index){
     let id = await dscpApi.getMetadata(index,'id')
     id = id.data
@@ -321,61 +333,79 @@ async function partHandler(result,index){
     part_transaction.type = actionType
     part_transaction.status = 'Submitted'
     part_transaction.token_id = result.id
-    if(actionType == 'metadata-update' || actionType == 'certification'){
-        let image = await dscpApi.getMetadata(index,'image')
-        const attachment = {}
-        let startIndex = image.headers['content-disposition'].indexOf('"')
-        let length = image.headers['content-disposition'].length
-        let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
-        let binary_blob = Buffer.from(image.data)
-        imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
-        imageAttachmentId = imageAttachmentId.data
-        attachment.filename = filename
-        attachment.binary_blob = binary_blob
-        attachment.id = imageAttachmentId
-        let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
-        if(attachmentResult.length == 0){
-            await db.insertAttachment(attachment)
+    if(result.id == result.original_id){
+        part = await gatherPartDetails(index)
+        part.id = id
+        part.supplier = result.roles.Supplier
+        part.original_token_id = result.original_id
+        part.latest_token_id = result.id
+        let [recipe] = await db.getRecipeById(part.recipe_id)
+        part.certifications = JSON.stringify(recipe.required_certs)
+        const response = await db.checkPartExists({original_token_id : result.original_id})
+        if(response.length == 0){
+            await db.insertPart(part, result.original_id)
+            await db.insertPartTransaction(part_transaction)
         }
     }
-    if(actionType == 'metadata-update'){
-        let metadataType = await dscpApi.getMetadata(index,'metaDataType')
-        metadataType = metadataType.data
-        metadata = [{
-            metadataType,
-            attachmentId : imageAttachmentId
-        }]
-        let [partObj] = await db.getPartById(id)
-        if(partObj.metadata){
-            part.metadata = partObj.metadata.concat(metadata)
+    else{
+        const idCombination = {
+            latest_token_id : result.id,
+            original_token_id : result.original_id
         }
-        else{
-            part.metadata = metadata
-        }
-    }
-    else if (actionType == 'order-assignment'){
-        let orderId = await dscpApi.getMetadata(index,'orderId')
-        part.order_id = orderId.data
-    }
-    else if(actionType == 'certification'){
-        let [partObj] = await db.getPartById(id)
-        let certificationIndex = await dscpApi.getMetadata(index,'certificationIndex')
-        certificationIndex = certificationIndex.data
-        for (let index = 0; index <= partObj.certifications.length; index++) {
-            if (index == certificationIndex) {
-                partObj.certifications[index].certificationAttachmentId = imageAttachmentId
+        const response = await db.checkPartExists(idCombination)
+        if(response.length == 0){
+            if(actionType == 'metadata-update' || actionType == 'certification'){
+                let image = await dscpApi.getMetadata(index,'image')
+                const attachment = {}
+                let startIndex = image.headers['content-disposition'].indexOf('"')
+                let length = image.headers['content-disposition'].length
+                let filename = image.headers['content-disposition'].substring(startIndex+1,length-1)
+                let binary_blob = Buffer.from(image.data)
+                imageAttachmentId = await dscpApi.getMetadata(index,'imageAttachmentId')
+                imageAttachmentId = imageAttachmentId.data
+                attachment.filename = filename
+                attachment.binary_blob = binary_blob
+                attachment.id = imageAttachmentId
+                let attachmentResult = await db.checkAttachmentExists(imageAttachmentId)
+                if(attachmentResult.length == 0){
+                    await db.insertAttachment(attachment)
+                }
             }
-          }
-        part.certifications = partObj.certifications
-    }
-    const idCombination = {
-        latest_token_id : result.id,
-        original_token_id : result.original_id
-    }
-    const response = await db.checkPartExists(idCombination)
-    if(response.length == 0){
-        await db.updatePart(part, id, result.original_id, result.id)
-        await db.insertPartTransaction(part_transaction)
+            if(actionType == 'metadata-update'){
+                let metadataType = await dscpApi.getMetadata(index,'metaDataType')
+                metadataType = metadataType.data
+                metadata = [{
+                    metadataType,
+                    attachmentId : imageAttachmentId
+                }]
+                let [partObj] = await db.getPartById(id)
+                if(partObj.metadata){
+                    part.metadata = partObj.metadata.concat(metadata)
+                }
+                else{
+                    part.metadata = metadata
+                }
+            }
+            else if(actionType == 'certification'){
+                let [partObj] = await db.getPartById(id)
+                let certificationIndex = await dscpApi.getMetadata(index,'certificationIndex')
+                certificationIndex = certificationIndex.data
+                for (let index = 0; index <= partObj.certifications.length; index++) {
+                    if (index == certificationIndex) {
+                        partObj.certifications[index].certificationAttachmentId = imageAttachmentId
+                    }
+                  }
+                part.certifications = partObj.certifications
+            }
+            else if(actionType == 'acknowledgement' || actionType == 'amendment'){
+                let [partDetails] = await db.getPartById(id)
+                let newPart = await gatherPartDetails(index)
+                part = { ...partDetails, ...newPart}
+            }
+            part.latest_token_id = result.id
+            await db.updatePart(part, result.original_id)
+            await db.insertPartTransaction(part_transaction)
+        }
     }
     try{
         let partResult = await db.getPartById(id)

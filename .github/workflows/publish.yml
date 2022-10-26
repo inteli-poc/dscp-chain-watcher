@@ -32,6 +32,9 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get last tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
 
       - name: Set outputs
         id: vars
@@ -45,4 +48,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:v1.0.${{ steps.vars.outputs.sha_short }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:${{ steps.get-latest-tag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:latest
+        if: ${{ steps.get-latest-tag.outputs.tag != null }}

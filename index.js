@@ -56,12 +56,8 @@ async function recipeHandler(result,index){
         }
     }
     else{
-        const recipe = {
-            latest_token_id : result.id,
-            original_token_id : result.original_id
-        }
-        const response = await db.checkRecipeExists(recipe)
-        if(response.length == 0){
+        const [recipeDetails] = await db.getRecipeById(id.data)
+        if(recipeDetails.latest_token_id < result.id){
             await db.updateRecipe(result.id,result.original_id)
             await db.insertRecipeTransaction(recipe_transaction)
         }
@@ -108,12 +104,8 @@ async function orderHandler(result,index){
         }
     }
     else{
-        const idCombination = {
-            latest_token_id : result.id,
-            original_token_id : result.original_id
-        }
-        const response = await db.checkOrderExists(idCombination)
-        if(response.length == 0){
+        const [orderDetails] = await db.getOrderById(id.data)
+        if(orderDetails.latest_token_id < result.id){
             order.image_attachment_id = null
             order.comments = null
             if(order.status == 'AcknowledgedWithExceptions'){
@@ -188,8 +180,8 @@ async function buildHandler(result,index){
         build.completion_estimate = completionEstimate.data
     }
     if(result.id == result.original_id){
-        let partRecipeMap = await dscpApi.getMetadata(index,'partRecipeMap')
-        partRecipeMap = partRecipeMap.data
+        let partIds = await dscpApi.getMetadata(index,'parts')
+        partIds = partIds.data
         build.latest_token_id = result.id
         build.original_token_id = result.original_id
         build.supplier = result.roles.Supplier
@@ -198,29 +190,21 @@ async function buildHandler(result,index){
         if(response.length == 0){
             await db.insertBuild(build)
             await db.insertBuildTransaction(build_transaction)
-            for(let index = 0; index < partRecipeMap.length; index++){
-                let part = {}
+            for(let partId of partIds){
+                let [part] = await db.getPartById(partId)
                 part.build_id = id.data
-                part.recipe_id = partRecipeMap[index].recipe_id
-                part.id = partRecipeMap[index].id
-                let [recipe] = await db.getRecipeById(part.recipe_id)
-                part.certifications = JSON.stringify(recipe.required_certs)
-                part.supplier = result.roles.Supplier
-                await db.insertPart(part)
+                let original_token_id = part.original_token_id
+                await db.updatePart(part,original_token_id)
             }
-
         }
     }
     else{
-        const idCombination = {
-            latest_token_id : result.id,
-            original_token_id : result.original_id
-        }
-        const response = await db.checkBuildExists(idCombination)
-        if(response.length == 0){
+        const [buildDetails] = await db.getBuildById(id.data)
+        if(buildDetails.latest_token_id < result.id){
             if(build.status == 'Completed'){
                 let completedAt = await dscpApi.getMetadata(index,'completedAt')
                 build.completed_at = completedAt.data
+                build.update_type = null
             }
             if(build.status != 'Completed'){
                 let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
@@ -316,6 +300,7 @@ async function gatherPartDetails(index){
     part.price = price
     part.quantity = quantity
     part.required_by = requiredBy
+    part.forecast_delivery_date = confirmedReceiptDate
     return part
 }
 
@@ -348,12 +333,8 @@ async function partHandler(result,index){
         }
     }
     else{
-        const idCombination = {
-            latest_token_id : result.id,
-            original_token_id : result.original_id
-        }
-        const response = await db.checkPartExists(idCombination)
-        if(response.length == 0){
+        const [partDetails] = await db.getPartById(id)
+        if(partDetails.latest_token_id < result.id){
             if(actionType == 'metadata-update' || actionType == 'certification'){
                 let image = await dscpApi.getMetadata(index,'image')
                 const attachment = {}
@@ -389,6 +370,8 @@ async function partHandler(result,index){
             else if(actionType == 'certification'){
                 let [partObj] = await db.getPartById(id)
                 let certificationIndex = await dscpApi.getMetadata(index,'certificationIndex')
+                let certificationType = await dscpApi.getMetadata(index,'certificationType')
+                certificationType = certificationType.data
                 certificationIndex = certificationIndex.data
                 for (let index = 0; index <= partObj.certifications.length; index++) {
                     if (index == certificationIndex) {
@@ -396,6 +379,10 @@ async function partHandler(result,index){
                     }
                   }
                 part.certifications = partObj.certifications
+                let [build] = await db.getBuildById(partObj.build_id)
+                build.update_type = certificationType
+                let original_token_id = build.original_token_id
+                await db.updateBuild(build,original_token_id)
             }
             else if(actionType == 'acknowledgement' || actionType == 'amendment'){
                 let [partDetails] = await db.getPartById(id)

@@ -39,6 +39,9 @@ jobs:
       - name: Set outputs
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +%s)"
       
       - name: Check outputs
         run: echo ${{ steps.vars.outputs.sha_short }}
@@ -49,6 +52,6 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:${{ steps.get-latest-tag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:${{ steps.get-latest-tag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}-${{ steps.date.outputs.date }}
             ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:latest
         if: ${{ steps.get-latest-tag.outputs.tag != null }}

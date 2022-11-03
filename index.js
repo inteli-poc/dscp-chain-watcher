@@ -144,19 +144,28 @@ async function orderHandler(result,index){
             await db.insertOrderTransaction(order_transaction)
         }
     }
-    try{
-        let orderResult = await db.getOrderById(id.data)
-        let supplierAlias = await identityService.getMemberByAddress(orderResult[0].supplier)
-        supplierAlias = supplierAlias.data.alias
-        let buyerAlias = await identityService.getMemberByAddress(orderResult[0].buyer)
-        buyerAlias = buyerAlias.data.alias
-        orderResult[0].supplier = supplierAlias
-        orderResult[0].buyer = buyerAlias
-        const csv = new ObjectsToCsv(orderResult)
-        await uploadFromMemory(await csv.toString(),actionType)
-    }
-    catch(err){
-        console.log(err.message)
+    if(actionType == 'Submission' || actionType == 'Acknowledgment' || actionType == 'Amendment'){
+        try{
+            let parts
+            if(actionType == 'Submission'){
+                parts = await dscpApi.getMetadata(index,'parts')
+            }
+            else{
+                parts = await dscpApi.getMetadata(index,'updatedParts')
+            }
+            parts = parts.data
+            for(let partId of parts){
+                let partResult = await db.getPartById(partId)
+                let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)
+                supplierAlias = supplierAlias.data.alias
+                partResult[0].supplier = supplierAlias
+                const csv = new ObjectsToCsv(partResult)
+                await uploadFromMemory(await csv.toString(),partId) 
+            }
+        }
+        catch(err){
+            console.log(err.message)
+        }
     }
 }
 
@@ -394,16 +403,18 @@ async function partHandler(result,index){
             await db.insertPartTransaction(part_transaction)
         }
     }
-    try{
-        let partResult = await db.getPartById(id)
-        let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)
-        supplierAlias = supplierAlias.data.alias
-        partResult[0].supplier = supplierAlias
-        const csv = new ObjectsToCsv(partResult)
-        await uploadFromMemory(await csv.toString(),actionType)
-    }
-    catch(err){
-        console.log(err.message)
+    if(actionType == 'certification' || actionType == 'metadata-update'){
+        try{
+            let partResult = await db.getPartById(id)
+            let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)
+            supplierAlias = supplierAlias.data.alias
+            partResult[0].supplier = supplierAlias
+            const csv = new ObjectsToCsv(partResult)
+            await uploadFromMemory(await csv.toString(),id)
+        }
+        catch(err){
+            console.log(err.message)
+        }
     }
 }
 
@@ -422,7 +433,7 @@ async function blockChainWatcher(){
     if(lasttokenidprocessed == lasttokenID){
         process.exit()
     }
-    for(let index= lasttokenidprocessed; index <= lasttokenID; index++){
+    for(let index= lasttokenidprocessed + 1; index <= lasttokenID; index++){
         try{
             console.log('Syncing token id : ', index)
             result = await dscpApi.getItem(index)
@@ -455,8 +466,8 @@ async function blockChainWatcher(){
     process.exit()
 }
 
-async function uploadFromMemory(contents,actionType) {
-    const destFileName = Date.now() + "_" + actionType + '.csv'
+async function uploadFromMemory(contents,id) {
+    const destFileName = Date.now() + "_" + id + '.csv'
     await storage.bucket('inteli-kinaxis').file(destFileName).save(contents);
 }
 

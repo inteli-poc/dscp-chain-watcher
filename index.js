@@ -398,12 +398,17 @@ async function partHandler(result,index){
                 let newPart = await gatherPartDetails(index)
                 part = { ...partDetails, ...newPart}
             }
+            else if(actionType == 'update-delivery-date'){
+                let forecastedDeliveryDate = await dscpApi.getMetadata(index,'forecastedDeliveryDate')
+                forecastedDeliveryDate = forecastedDeliveryDate.data
+                part.forecast_delivery_date = forecastedDeliveryDate
+            }
             part.latest_token_id = result.id
             await db.updatePart(part, result.original_id)
             await db.insertPartTransaction(part_transaction)
         }
     }
-    if(actionType == 'certification' || actionType == 'metadata-update'){
+    if(actionType == 'certification' || actionType == 'metadata-update' || actionType == 'update-delivery-date'){
         try{
             let partResult = await db.getPartById(id)
             let supplierAlias = await identityService.getMemberByAddress(partResult[0].supplier)

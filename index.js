@@ -375,6 +375,12 @@ async function partHandler(result,index){
                 else{
                     part.metadata = metadata
                 }
+                if(metadataType == 'goodsReceipt'){
+                    let [build] = await db.getBuildById(partObj.build_id)
+                    build.status = 'Part Received'
+                    let original_token_id = build.original_token_id
+                    await db.updateBuild(build,original_token_id)
+                }
             }
             else if(actionType == 'certification'){
                 let [partObj] = await db.getPartById(id)

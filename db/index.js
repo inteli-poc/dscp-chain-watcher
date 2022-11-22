@@ -74,7 +74,7 @@ async function insertBuildTransaction(build_transaction){
 }
 
 async function insertPartTransaction(part_transaction){
-  return client('part_transactions').insert(part_transaction)
+  return client('part_transactions').insert(part_transaction).returning(['id'])
 }
 
 async function insertRecipeTransaction(recipe_transaction){
@@ -134,6 +134,18 @@ async function getBuildById(id){
   return client('build').select().where({id})
 }
 
+async function getPartIdsByBuildId(build_id) {
+  return client('parts').select().where({ build_id })
+}
+
+async function updatePartTransaction(id, token_id) {
+  return client('part_transactions').update({ token_id }).where({ id })
+}
+
+async function removeTransactionPart(id) {
+  return client('part_transactions').delete().where({ id })
+}
+
 module.exports = {
     getLastProcessedTokenID,
     insertRecipe,
@@ -159,5 +171,8 @@ module.exports = {
     insertPartTransaction,
     insertRecipeTransaction,
     getOrderById,
-    getBuildById
+    getBuildById,
+    getPartIdsByBuildId,
+    updatePartTransaction,
+    removeTransactionPart
 }

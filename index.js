@@ -257,7 +257,46 @@ async function buildHandler(result,index){
                     build.update_type = updateType.data
                 }
                 catch(err){
-                    console.log('updateType not found')
+                    console.log('updateType not found',err)
+                }
+            }
+            if(build.status == 'Part Received'){
+                let partIds = await db.getPartIdsByBuildId(id.data)
+                for(let partId of partIds){
+                    let part_transaction = {}
+                    part_transaction.part_id = partId.id
+                    part_transaction.type = 'ownership'
+                    part_transaction.status = 'Submitted'
+                    const [transaction] = await db.insertPartTransaction(part_transaction)
+                    let inputs = [partId.latest_token_id]
+                    let outputs = [{
+                        roles: {
+                            Owner: result.roles.Buyer,
+                            Buyer: result.roles.Buyer,
+                            Supplier: result.roles.Supplier,
+                            },
+                            metadata: {
+                            type: { type: 'LITERAL', value: 'PART' },
+                            id: { type: 'FILE', value: 'id.json' },
+                            transactionId: { type: 'LITERAL', value: transaction.id.replace(/-/g, '') },
+                            actionType: { type: 'LITERAL', value: 'ownership' },
+                            },
+                            parent_index: 0
+                    }]
+                    try{
+                        let response = await dscpApi.runProcess({inputs,outputs},Buffer.from(JSON.stringify(partId.id)))
+                        response = response.data
+                        partId.latest_token_id = response[0]
+                        await db.updatePartTransaction(transaction.id, response[0])
+                        await db.updatePart(partId, partId.original_token_id)
+                    }
+                    catch(err){
+                        await db.removeTransactionPart(transaction.id)
+                        part_transaction.status = 'Failed'
+                        part_transaction.token_id = 0
+                        await db.insertPartTransaction(part_transaction)
+                        throw err
+                    }
                 }
             }
             build.latest_token_id = result.id
@@ -374,12 +413,6 @@ async function partHandler(result,index){
                 }
                 else{
                     part.metadata = metadata
-                }
-                if(metadataType == 'goodsReceipt'){
-                    let [build] = await db.getBuildById(partObj.build_id)
-                    build.status = 'Part Received'
-                    let original_token_id = build.original_token_id
-                    await db.updateBuild(build,original_token_id)
                 }
             }
             else if(actionType == 'certification'){

@@ -302,6 +302,22 @@ async function buildHandler(result,index){
             build.latest_token_id = result.id
             await db.updateBuild(build,result.original_id)
             await db.insertBuildTransaction(build_transaction)
+            let [part_build] = await db.getPartsByBuildId(id.data)
+            let part_order = await db.getPartsByOrderId(part_build.order_id)
+            let orderComplete = true
+            for(let part of part_order){
+            let [build] = await db.getBuildById(part.build_id)
+            if(build.status != 'Part Received')
+            {
+                orderComplete = false
+                break
+            }
+            }
+            if(orderComplete){
+            let [order] = await db.getOrderById(part_build.order_id)
+            order.status = 'Completed'
+            await db.updateOrder(order,order.original_token_id)
+            }
         }
     }
 

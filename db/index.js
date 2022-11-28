@@ -146,6 +146,14 @@ async function removeTransactionPart(id) {
   return client('part_transactions').delete().where({ id })
 }
 
+async function getPartsByBuildId(build_id) {
+  return client('parts').select().where({ build_id })
+}
+
+async function getPartsByOrderId(order_id) {
+  return client('parts').select().where({ order_id })
+}
+
 module.exports = {
     getLastProcessedTokenID,
     insertRecipe,
@@ -174,5 +182,7 @@ module.exports = {
     getBuildById,
     getPartIdsByBuildId,
     updatePartTransaction,
-    removeTransactionPart
+    removeTransactionPart,
+    getPartsByBuildId,
+    getPartsByOrderId
 }

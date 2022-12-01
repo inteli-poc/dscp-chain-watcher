@@ -58,5 +58,5 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:${{ steps.vars.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:v${{ steps.vars.outputs.tag }}
           ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:stable

@@ -1,0 +1,62 @@
+##############################################################################################
+#  Copyright Accenture. All Rights Reserved.
+#
+#  SPDX-License-Identifier: Apache-2.0
+##############################################################################################
+
+# Build dscp-chain-watcher docker image triggered by :
+#  - create tag vx.y.z for release tags
+
+name: Build dscp-chain-watcher docker image
+
+on:
+  workflow_dispatch:
+  create:
+    tags:
+      - v*
+
+env:
+  REGISTRY: ghcr.io
+  REPO_NAME: ${{ github.repository }}
+
+jobs:
+  # on tag vx.y.z created, create docker tag stable, x.y.z
+  dscp-chain-watcher-build-release: 
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to the container registry
+      uses: docker/login-action@v1
+      with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set output
+      id: vars
+      run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/v}
+
+    - name: Check outputs
+      run: echo ${{ steps.vars.outputs.tag }}
+
+    - name: Build and push release and stable tag ${{ steps.vars.outputs.tag }}  
+      id: docker_build_release
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:v${{ steps.vars.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:stable

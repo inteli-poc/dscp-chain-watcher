@@ -77,6 +77,10 @@ async function insertPartTransaction(part_transaction){
   return client('part_transactions').insert(part_transaction).returning(['id'])
 }
 
+async function insertMachiningOrderTransaction(machining_order_transaction){
+  return client('machining_order_transactions').insert(machining_order_transaction).returning(['id'])
+}
+
 async function insertRecipeTransaction(recipe_transaction){
   return client('recipe_transactions').insert(recipe_transaction)
 }
@@ -84,6 +88,11 @@ async function insertRecipeTransaction(recipe_transaction){
 async function insertPart(part){
   console.log(`inserting part ${JSON.stringify(part)} into database`)
   return client('parts').insert(part)
+}
+
+async function insertMachiningOrder(machiningOrder){
+  console.log(`inserting machining order ${JSON.stringify(machiningOrder)} into database`)
+  return client('machiningorders').insert(machiningOrder)
 }
 
 async function updatePart(part, original_token_id){
@@ -94,6 +103,11 @@ async function updatePart(part, original_token_id){
 async function getPartById(id){
   console.log(`getting part by id #${id}`)
   return client('parts').select().where({ id })
+}
+
+async function getMachiningOrderById(id){
+  console.log(`getting machining order by id #${id}`)
+  return client('machiningorders').select().where({ id })
 }
 
 async function insertBuild(build){
@@ -111,6 +125,11 @@ async function updateBuild(build,original_token_id){
   return client('build').update(build).where({original_token_id})
 }
 
+async function updateMachiningOrder(machiningOrder,original_token_id){
+  console.log(`updating machining order: ${machiningOrder}. Original token id #${original_token_id}`)
+  return client('machiningorders').update(machiningOrder).where({original_token_id})
+}
+
 async function checkOrderExists(order){
   console.log(`checking order: ${JSON.stringify(order)} exists`)
   return client('orders').select().where(order)
@@ -119,6 +138,11 @@ async function checkOrderExists(order){
 async function checkPartExists(part){
   console.log(`checking part: ${JSON.stringify(part)} exists`)
   return client('parts').select().where(part)
+}
+
+async function checkMachiningOrderExists(machiningOrder){
+  console.log(`checking machining order: ${JSON.stringify(machiningOrder)} exists`)
+  return client('machiningorders').select().where(machiningOrder)
 }
 
 async function checkBuildExists(build){
@@ -184,5 +208,10 @@ module.exports = {
     updatePartTransaction,
     removeTransactionPart,
     getPartsByBuildId,
-    getPartsByOrderId
+    getPartsByOrderId,
+    checkMachiningOrderExists,
+    insertMachiningOrder,
+    insertMachiningOrderTransaction,
+    getMachiningOrderById,
+    updateMachiningOrder
 }

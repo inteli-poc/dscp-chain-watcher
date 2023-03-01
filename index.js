@@ -478,6 +478,92 @@ async function partHandler(result,index){
     }
 }
 
+async function machiningOrderHandler(result, index){
+    let id = await dscpApi.getMetadata(index,'id')
+    id = id.data
+    let machiningOrder = {}
+    let machining_order_transactions = {}
+    let actionType = await dscpApi.getMetadata(index,'actionType')
+    let transactionId = await dscpApi.getMetadata(index,'transactionId')
+    let status = await dscpApi.getMetadata(index,'status')
+    machining_order_transactions.id = transactionId.data
+    machining_order_transactions.machining_order_id = id
+    actionType = actionType.data
+    machining_order_transactions.type = actionType
+    machining_order_transactions.status = 'Submitted'
+    machining_order_transactions.token_id = result.id
+    machiningOrder.status = status.data
+    if(result.id == result.original_id){
+        let externalId = await dscpApi.getMetadata(index, 'externalId')
+        let partId = await dscpApi.getMetadata(index, 'partId')
+        machiningOrder.external_id = externalId.data
+        machiningOrder.id = id
+        machiningOrder.supplier = result.roles.Supplier
+        machiningOrder.buyer = result.roles.Buyer
+        machiningOrder.original_token_id = result.original_id
+        machiningOrder.latest_token_id = result.id
+        machiningOrder.part_id = partId.data
+        const response = await db.checkMachiningOrderExists({original_token_id : result.original_id})
+        if(response.length == 0){
+            await db.insertMachiningOrder(machiningOrder, result.original_id)
+            await db.insertMachiningOrderTransaction(machining_order_transactions)
+        }
+    }
+    else{
+        let [machiningOrderDetails] = await db.getMachiningOrderById(id)
+        if(machiningOrderDetails.latest_token_id < result.id){
+            if(actionType === 'Start'){
+                let startedAt = await dscpApi.getMetadata(index, 'startedAt')
+                machiningOrder.started_at = startedAt.data
+                let taskNumber = await dscpApi.getMetadata(index,'taskNumber')
+                machiningOrder.task_id = taskNumber.data
+                let part_transaction = {}
+                    let [partId] = await db.getPartById(machiningOrderDetails.part_id)
+                    part_transaction.part_id = partId.id
+                    part_transaction.type = 'ownership'
+                    part_transaction.status = 'Submitted'
+                    const [transaction] = await db.insertPartTransaction(part_transaction)
+                    let inputs = [partId.latest_token_id]
+                    let outputs = [{
+                        roles: {
+                            Owner: result.roles.Supplier,
+                            Buyer: result.roles.Buyer,
+                            Supplier: result.roles.Supplier,
+                            },
+                            metadata: {
+                            type: { type: 'LITERAL', value: 'PART' },
+                            id: { type: 'FILE', value: 'id.json' },
+                            transactionId: { type: 'LITERAL', value: transaction.id.replace(/-/g, '') },
+                            actionType: { type: 'LITERAL', value: 'ownership' },
+                            },
+                            parent_index: 0
+                    }]
+                    try{
+                        let response = await dscpApi.runProcess({inputs,outputs},Buffer.from(JSON.stringify(partId.id)))
+                        response = response.data
+                        partId.latest_token_id = response[0]
+                        await db.updatePartTransaction(transaction.id, response[0])
+                        await db.updatePart(partId, partId.original_token_id)
+                    }
+                    catch(err){
+                        await db.removeTransactionPart(transaction.id)
+                        part_transaction.status = 'Failed'
+                        part_transaction.token_id = 0
+                        await db.insertPartTransaction(part_transaction)
+                        throw err
+                    }
+            }
+            else if(actionType === 'Completed'){
+                let completedAt = await dscpApi.getMetadata(index, 'completedAt')
+                machiningOrder.completed_at = completedAt.data
+            }
+            machiningOrder.latest_token_id = result.id
+            await db.updateMachiningOrder(machiningOrder, result.original_id)
+            await db.insertMachiningOrderTransaction(machining_order_transactions)
+        }
+    }
+}
+
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()
     let lasttokenidprocessed
@@ -512,6 +598,9 @@ async function blockChainWatcher(){
                         break
                     case 'PART':
                         await partHandler(result,index)
+                        break
+                    case 'MACHININGORDER':
+                        await machiningOrderHandler(result,index)
                         break
                 }
             }

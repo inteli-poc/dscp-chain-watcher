@@ -38,12 +38,18 @@ methods.getMetadata = async (tokenID,metadata) => {
     }
 }
 
-methods.runProcess = async (payload,id) => {
+methods.runProcess = async (    {
+    parts,
+    id,
+    ...payload
+  },) => {
+    
     const url = `http://${process.env.DSCP_API_HOST}:${process.env.DSCP_API_PORT}/v3/run-process`
     const formData = new FormData()
 
     formData.append('request', JSON.stringify(payload))
-    formData.append('file', id, 'id.json')
+    if (id) formData.append('file', id, 'id.json')
+    if (parts) formData.append('file', parts, 'parts.json')
     return axios(url, {
         method: 'POST',
         data: formData,

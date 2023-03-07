@@ -557,6 +557,12 @@ async function machiningOrderHandler(result, index){
                 let completedAt = await dscpApi.getMetadata(index, 'completedAt')
                 machiningOrder.completed_at = completedAt.data
             }
+            else if(actionType === 'Part Shipped'){
+                let [part] = await db.getPartById(machiningOrder.part_id)
+                let [build] = await db.getBuildById(part.build_id)
+                build.updateType = 'Machining and NDT Completed'
+                await db.updateBuild(build,build.original_token_id)
+            }
             machiningOrder.latest_token_id = result.id
             await db.updateMachiningOrder(machiningOrder, result.original_id)
             await db.insertMachiningOrderTransaction(machining_order_transactions)

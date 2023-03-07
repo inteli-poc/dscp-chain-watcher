@@ -284,7 +284,7 @@ async function buildHandler(result,index){
                             parent_index: 0
                     }]
                     try{
-                        let response = await dscpApi.runProcess({inputs,outputs},Buffer.from(JSON.stringify(partId.id)))
+                        let response = await dscpApi.runProcess({inputs,outputs,id : Buffer.from(JSON.stringify(partId.id))})
                         response = response.data
                         partId.latest_token_id = response[0]
                         await db.updatePartTransaction(transaction.id, response[0])
@@ -292,9 +292,6 @@ async function buildHandler(result,index){
                     }
                     catch(err){
                         await db.removeTransactionPart(transaction.id)
-                        part_transaction.status = 'Failed'
-                        part_transaction.token_id = 0
-                        await db.insertPartTransaction(part_transaction)
                         throw err
                     }
                 }
@@ -539,7 +536,7 @@ async function machiningOrderHandler(result, index){
                             parent_index: 0
                     }]
                     try{
-                        let response = await dscpApi.runProcess({inputs,outputs},Buffer.from(JSON.stringify(partId.id)))
+                        let response = await dscpApi.runProcess({inputs,outputs,id: Buffer.from(JSON.stringify(partId.id))})
                         response = response.data
                         partId.latest_token_id = response[0]
                         await db.updatePartTransaction(transaction.id, response[0])
@@ -547,9 +544,6 @@ async function machiningOrderHandler(result, index){
                     }
                     catch(err){
                         await db.removeTransactionPart(transaction.id)
-                        part_transaction.status = 'Failed'
-                        part_transaction.token_id = 0
-                        await db.insertPartTransaction(part_transaction)
                         throw err
                     }
             }
@@ -558,10 +552,38 @@ async function machiningOrderHandler(result, index){
                 machiningOrder.completed_at = completedAt.data
             }
             else if(actionType === 'Part Shipped'){
-                let [part] = await db.getPartById(machiningOrder.part_id)
+                let [part] = await db.getPartById(machiningOrderDetails.part_id)
                 let [build] = await db.getBuildById(part.build_id)
-                build.updateType = 'Machining and NDT Completed'
-                await db.updateBuild(build,build.original_token_id)
+                build.update_type = 'Machining and NDT Completed'
+                const parts = await db.getPartsByBuildId(part.build_id)
+                const partIds = parts.map((item) => {
+                return item.id
+                })
+                const buyer = result.roles.Buyer
+                let build_transaction = {}
+                build_transaction.build_id = build.id
+                build_transaction.status = 'Submitted'
+                build_transaction.type = 'progress-update'
+                const [transaction] = await db.insertBuildTransaction(build_transaction)
+                let payload
+                try {
+                  payload = await mapBuildData({ ...build, transaction, partIds, buyer })
+                } catch (err) {
+                  await db.removeTransactionBuild(transaction.id)
+                  throw err
+                }
+                try {
+                  const result = await dscpApi.runProcess(payload)
+                  if (Array.isArray(result)) {
+                    await db.updateBuildTransaction(transaction.id, result[0])
+                    await db.updateBuild(build,build.original_token_id)
+                  } else {
+                    await db.removeTransactionBuild(transaction.id)
+                  }
+                } catch (err) {
+                  await db.removeTransactionBuild(transaction.id)
+                  throw err
+                }
             }
             machiningOrder.latest_token_id = result.id
             await db.updateMachiningOrder(machiningOrder, result.original_id)
@@ -569,6 +591,39 @@ async function machiningOrderHandler(result, index){
         }
     }
 }
+
+const buildBuildOutputs = (data) => {
+    return {
+      roles: {
+        Owner: data.buyer,
+      },
+      metadata: {
+        type: { type: 'LITERAL', value: 'BUILD' },
+        status: { type: 'LITERAL', value: data.status },
+        transactionId: { type: 'LITERAL', value: data.transaction.id.replace(/-/g, '') },
+        externalId: { type: 'LITERAL', value: data.external_id },
+        parts: { type: 'FILE', value: 'parts.json' },
+        id: { type: 'FILE', value: 'id.json' },
+        actionType: { type: 'LITERAL', value: "progress-update" },
+        updateType: { type: 'LITERAL', value: data.update_type },
+        completionEstimate: { type: 'LITERAL', value: data.completion_estimate }
+      },
+       parent_index: 0
+    }
+  }
+  
+  const mapBuildData = async (data) => {
+    let inputs
+    let outputs
+    inputs = [data.latest_token_id]
+    outputs = [buildBuildOutputs(data)]
+    return {
+      parts: Buffer.from(JSON.stringify(data.partIds)),
+      id: Buffer.from(JSON.stringify(data.id)),
+      inputs,
+      outputs,
+    }
+  }
 
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()

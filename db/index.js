@@ -70,7 +70,7 @@ async function insertOrderTransaction(order_transaction){
 }
 
 async function insertBuildTransaction(build_transaction){
-  return client('build_transactions').insert(build_transaction)
+  return client('build_transactions').insert(build_transaction).returning(['id'])
 }
 
 async function insertPartTransaction(part_transaction){
@@ -170,12 +170,20 @@ async function removeTransactionPart(id) {
   return client('part_transactions').delete().where({ id })
 }
 
+async function removeTransactionBuild(id){
+  return client('build_transactions').delete().where({ id })
+}
+
 async function getPartsByBuildId(build_id) {
   return client('parts').select().where({ build_id })
 }
 
 async function getPartsByOrderId(order_id) {
   return client('parts').select().where({ order_id })
+}
+
+async function updateBuildTransaction(id, token_id){
+  return client('build_transactions').update({ token_id }).where({ id })
 }
 
 module.exports = {
@@ -213,5 +221,7 @@ module.exports = {
     insertMachiningOrder,
     insertMachiningOrderTransaction,
     getMachiningOrderById,
-    updateMachiningOrder
+    updateMachiningOrder,
+    updateBuildTransaction,
+    removeTransactionBuild
 }

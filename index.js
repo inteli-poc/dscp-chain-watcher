@@ -554,7 +554,7 @@ async function machiningOrderHandler(result, index){
             else if(actionType === 'Part Shipped'){
                 let [part] = await db.getPartById(machiningOrderDetails.part_id)
                 let [build] = await db.getBuildById(part.build_id)
-                build.update_type = 'Machining and NDT Completed'
+                build.update_type = 'Rough Machining and NDT Completed'
                 const parts = await db.getPartsByBuildId(part.build_id)
                 const partIds = parts.map((item) => {
                 return item.id

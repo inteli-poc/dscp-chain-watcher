@@ -581,6 +581,7 @@ async function machiningOrderHandler(result, index){
                     await db.removeTransactionBuild(transaction.id)
                   }
                 } catch (err) {
+                    console.log(err,'runprocess error')
                   await db.removeTransactionBuild(transaction.id)
                   throw err
                 }

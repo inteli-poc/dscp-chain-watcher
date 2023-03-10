@@ -606,7 +606,7 @@ const buildBuildOutputs = (data) => {
         parts: { type: 'FILE', value: 'parts.json' },
         id: { type: 'FILE', value: 'id.json' },
         actionType: { type: 'LITERAL', value: "progress-update" },
-        updateType: { type: 'LITERAL', value: data.update_type },
+        updateType: { type: 'FILE', value: 'updateType.json' },
         completionEstimate: { type: 'LITERAL', value: data.completion_estimate }
       },
        parent_index: 0
@@ -620,6 +620,7 @@ const buildBuildOutputs = (data) => {
     outputs = [buildBuildOutputs(data)]
     return {
       parts: Buffer.from(JSON.stringify(data.partIds)),
+      updateType: Buffer.from(JSON.stringify(data.update_type)),
       id: Buffer.from(JSON.stringify(data.id)),
       inputs,
       outputs,

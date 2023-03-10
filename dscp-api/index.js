@@ -39,6 +39,7 @@ methods.getMetadata = async (tokenID,metadata) => {
 }
 
 methods.runProcess = async (    {
+    updateType,
     parts,
     id,
     ...payload
@@ -50,6 +51,7 @@ methods.runProcess = async (    {
     formData.append('request', JSON.stringify(payload))
     if (id) formData.append('file', id, 'id.json')
     if (parts) formData.append('file', parts, 'parts.json')
+    if(updateType) formData.append('file', updateType, 'updateType.json')
     return axios(url, {
         method: 'POST',
         data: formData,

@@ -448,7 +448,9 @@ async function partHandler(result,index){
             else if(actionType == 'acknowledgement' || actionType == 'amendment'){
                 let [partDetails] = await db.getPartById(id)
                 let newPart = await gatherPartDetails(index)
-                part = { ...partDetails, ...newPart}
+                let comments = await dscpApi.getMetadata(index, 'comments')
+                comments = comments.data
+                part = { ...partDetails, ...newPart, comments}
             }
             else if(actionType == 'update-delivery-date'){
                 let forecastedDeliveryDate = await dscpApi.getMetadata(index,'forecastedDeliveryDate')

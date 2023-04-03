@@ -514,8 +514,6 @@ async function machiningOrderHandler(result, index){
             if(actionType === 'Start'){
                 let startedAt = await dscpApi.getMetadata(index, 'startedAt')
                 machiningOrder.started_at = startedAt.data
-                let taskNumber = await dscpApi.getMetadata(index,'taskNumber')
-                machiningOrder.task_id = taskNumber.data
                 let part_transaction = {}
                     let [partId] = await db.getPartById(machiningOrderDetails.part_id)
                     part_transaction.part_id = partId.id

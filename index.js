@@ -2,7 +2,9 @@ const db = require('./db')
 const dscpApi = require('./dscp-api')
 const identityService = require('./identity-service')
 const ObjectsToCsv = require('objects-to-csv');
-const {Storage} = require('@google-cloud/storage')
+const {Storage} = require('@google-cloud/storage');
+const { default: axios } = require('axios');
+const inteliApi = require('./inteli-api')
 const storage = new Storage()
 
 async function recipeHandler(result,index){
@@ -142,6 +144,23 @@ async function orderHandler(result,index){
             order.latest_token_id = result.id
             await db.updateOrder(order,result.original_id)
             await db.insertOrderTransaction(order_transaction)
+            if(actionType === 'Acceptance'){
+                try{
+                    const data = {
+                        description: 'Purchase order has been Accepted',
+                        orderId: order.id,
+                        partId: null,
+                        buildId: null,
+                        read: false,
+                        delete: false,
+                        externalId: null
+                    }
+                    await inteliApi.sendNotification(data)
+                }
+                catch(err){
+                    console.log("Error sending notification:", err.message)
+                }
+            }
         }
     }
     if(actionType == 'Submission' || actionType == 'Acknowledgment' || actionType == 'Amendment'){

@@ -147,8 +147,42 @@ async function orderHandler(result,index){
             if(actionType === 'Acceptance'){
                 try{
                     const data = {
-                        description: 'Purchase order has been Accepted',
-                        orderId: order.id,
+                        description: 'Purchase order Accepted',
+                        orderId: order.external_id,
+                        partId: null,
+                        buildId: null,
+                        read: false,
+                        delete: false,
+                        externalId: null
+                    }
+                    await inteliApi.sendNotification(data)
+                }
+                catch(err){
+                    console.log("Error sending notification:", err.message)
+                }
+            }
+            else if(actionType === 'Acknowledgement'){
+                try{
+                    const data = {
+                        description: 'Purchase order Acknowledged',
+                        orderId: order.external_id,
+                        partId: null,
+                        buildId: null,
+                        read: false,
+                        delete: false,
+                        externalId: null
+                    }
+                    await inteliApi.sendNotification(data)
+                }
+                catch(err){
+                    console.log("Error sending notification:", err.message)
+                }
+            }
+            else if(actionType === 'Submission'){
+                try{
+                    const data = {
+                        description: 'Purchase order Received',
+                        orderId: order.external_id,
                         partId: null,
                         buildId: null,
                         read: false,
@@ -334,6 +368,50 @@ async function buildHandler(result,index){
             order.status = 'Completed'
             await db.updateOrder(order,order.original_token_id)
             }
+            try{
+                let updateType = await dscpApi.getMetadata(index,'updateType')
+                if(updateType === 'Rough Machining and NDT Completed' || updateType === 'GRN Uploaded' || updateType === '3-Way Match Completed'){
+                    try{
+                        let [part] = await db.getPartsByBuildId(build.id)
+                        let [order] = await db.getOrderById(part.order_id)
+                        const data = {
+                            description: updateType === 'GRN Uploaded'? 'Part Received': updateType,
+                            orderId: order.external_id,
+                            partId: part.id,
+                            buildId: build.external_id,
+                            read: false,
+                            delete: false,
+                            externalId: null
+                        }
+                        await inteliApi.sendNotification(data)
+                    }
+                    catch(err){
+                        console.log("Error sending notification:", err.message)
+                    }
+                }
+            }
+            catch(err){
+                console.log('update type not found',err.message)
+            }
+            if(build.status === 'Completed'){
+                try{
+                    let [part] = await db.getPartsByBuildId(build.id)
+                    let [order] = await db.getOrderById(part.order_id)
+                    const data = {
+                        description: 'Part Shipped',
+                        orderId: order.external_id,
+                        partId: part.id,
+                        buildId: build.external_id,
+                        read: false,
+                        delete: false,
+                        externalId: null
+                    }
+                    await inteliApi.sendNotification(data)
+                }
+                catch(err){
+                    console.log("Error sending notification:", err.message)
+                }
+            }
         }
     }
 
@@ -479,6 +557,25 @@ async function partHandler(result,index){
             part.latest_token_id = result.id
             await db.updatePart(part, result.original_id)
             await db.insertPartTransaction(part_transaction)
+            if(actionType === 'certification'){
+                let [order] = await db.getOrderById(part.order_id)
+                let [build] = await db.getBuildById(part.build_id)
+                try{
+                    const data = {
+                        description: 'Documentation Uploaded',
+                        orderId: order.external_id,
+                        partId: part.id,
+                        buildId: build.external_id,
+                        read: false,
+                        delete: false,
+                        externalId: null
+                    }
+                    await inteliApi.sendNotification(data)
+                }
+                catch(err){
+                    console.log("Error sending notification:", err.message)
+                }
+            }
         }
     }
     if(actionType == 'certification' || actionType == 'metadata-update' || actionType == 'update-delivery-date'){

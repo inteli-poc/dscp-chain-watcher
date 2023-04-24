@@ -103,6 +103,23 @@ async function orderHandler(result,index){
                 part.order_id = id.data
                 await db.updatePart(part, part.original_token_id)
             }
+            if(actionType === 'Submission'){
+                try{
+                    const data = {
+                        description: 'Purchase order Received',
+                        orderId: order.external_id,
+                        partId: null,
+                        buildId: null,
+                        read: false,
+                        delete: false,
+                        externalId: null
+                    }
+                    await inteliApi.sendNotification(data)
+                }
+                catch(err){
+                    console.log("Error sending notification:", err.message)
+                }
+            }
         }
     }
     else{
@@ -148,7 +165,7 @@ async function orderHandler(result,index){
                 try{
                     const data = {
                         description: 'Purchase order Accepted',
-                        orderId: order.external_id,
+                        orderId: orderDetails.external_id,
                         partId: null,
                         buildId: null,
                         read: false,
@@ -165,24 +182,7 @@ async function orderHandler(result,index){
                 try{
                     const data = {
                         description: 'Purchase order Acknowledged',
-                        orderId: order.external_id,
-                        partId: null,
-                        buildId: null,
-                        read: false,
-                        delete: false,
-                        externalId: null
-                    }
-                    await inteliApi.sendNotification(data)
-                }
-                catch(err){
-                    console.log("Error sending notification:", err.message)
-                }
-            }
-            else if(actionType === 'Submission'){
-                try{
-                    const data = {
-                        description: 'Purchase order Received',
-                        orderId: order.external_id,
+                        orderId: orderDetails.external_id,
                         partId: null,
                         buildId: null,
                         read: false,
@@ -372,13 +372,13 @@ async function buildHandler(result,index){
                 let updateType = await dscpApi.getMetadata(index,'updateType')
                 if(updateType === 'Rough Machining and NDT Completed' || updateType === 'GRN Uploaded' || updateType === '3-Way Match Completed'){
                     try{
-                        let [part] = await db.getPartsByBuildId(build.id)
+                        let [part] = await db.getPartsByBuildId(buildDetails.id)
                         let [order] = await db.getOrderById(part.order_id)
                         const data = {
                             description: updateType === 'GRN Uploaded'? 'Part Received': updateType,
                             orderId: order.external_id,
                             partId: part.id,
-                            buildId: build.external_id,
+                            buildId: buildDetails.external_id,
                             read: false,
                             delete: false,
                             externalId: null
@@ -395,13 +395,13 @@ async function buildHandler(result,index){
             }
             if(build.status === 'Completed'){
                 try{
-                    let [part] = await db.getPartsByBuildId(build.id)
+                    let [part] = await db.getPartsByBuildId(buildDetails.id)
                     let [order] = await db.getOrderById(part.order_id)
                     const data = {
                         description: 'Part Shipped',
                         orderId: order.external_id,
                         partId: part.id,
-                        buildId: build.external_id,
+                        buildId: buildDetails.external_id,
                         read: false,
                         delete: false,
                         externalId: null
@@ -558,13 +558,13 @@ async function partHandler(result,index){
             await db.updatePart(part, result.original_id)
             await db.insertPartTransaction(part_transaction)
             if(actionType === 'certification'){
-                let [order] = await db.getOrderById(part.order_id)
-                let [build] = await db.getBuildById(part.build_id)
+                let [order] = await db.getOrderById(partDetails.order_id)
+                let [build] = await db.getBuildById(partDetails.build_id)
                 try{
                     const data = {
                         description: 'Documentation Uploaded',
                         orderId: order.external_id,
-                        partId: part.id,
+                        partId: partDetails.id,
                         buildId: build.external_id,
                         read: false,
                         delete: false,

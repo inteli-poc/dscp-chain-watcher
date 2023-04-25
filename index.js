@@ -117,7 +117,7 @@ async function orderHandler(result,index){
                     await inteliApi.sendNotification(data)
                 }
                 catch(err){
-                    console.log("Error sending notification:", err.message)
+                    console.log("Error sending notification:", err)
                 }
             }
         }

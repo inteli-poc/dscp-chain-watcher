@@ -376,6 +376,7 @@ async function buildHandler(result,index){
             }
             try{
                 let updateType = await dscpApi.getMetadata(index,'updateType')
+                updateType = updateType.data
                 if(updateType === 'Rough Machining and NDT Completed' || updateType === 'GRN Uploaded' || updateType === '3-Way Match Completed'){
                     try{
                         let [part] = await db.getPartsByBuildId(buildDetails.id)
@@ -411,7 +412,7 @@ async function buildHandler(result,index){
                         orderExternalId: order.external_id,
                         partId: part.id,
                         buildId: buildDetails.id,
-                        uildExternalId: buildDetails.external_id,
+                        buildExternalId: buildDetails.external_id,
                         read: false,
                         delete: false,
                         externalId: null

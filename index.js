@@ -107,7 +107,9 @@ async function orderHandler(result,index){
                 try{
                     const data = {
                         description: 'Purchase order Received',
-                        orderId: order.external_id,
+                        orderId: order.id,
+                        orderExternalId: order.external_id,
+                        buildExternalId: null,
                         partId: null,
                         buildId: null,
                         read: false,
@@ -117,7 +119,7 @@ async function orderHandler(result,index){
                     await inteliApi.sendNotification(data)
                 }
                 catch(err){
-                    console.log("Error sending notification:", err)
+                    console.log("Error sending notification:", err.message)
                 }
             }
         }
@@ -165,7 +167,9 @@ async function orderHandler(result,index){
                 try{
                     const data = {
                         description: 'Purchase order Accepted',
-                        orderId: orderDetails.external_id,
+                        orderId: orderDetails.id,
+                        orderExternalId: orderDetails.id,
+                        buildExternalId: null,
                         partId: null,
                         buildId: null,
                         read: false,
@@ -182,7 +186,9 @@ async function orderHandler(result,index){
                 try{
                     const data = {
                         description: 'Purchase order Acknowledged',
-                        orderId: orderDetails.external_id,
+                        orderId: orderDetails.id,
+                        orderExternalId: orderDetails.id,
+                        buildExternalId: null,
                         partId: null,
                         buildId: null,
                         read: false,
@@ -376,9 +382,11 @@ async function buildHandler(result,index){
                         let [order] = await db.getOrderById(part.order_id)
                         const data = {
                             description: updateType === 'GRN Uploaded'? 'Part Received': updateType,
-                            orderId: order.external_id,
+                            orderId: order.id,
+                            orderExternalId: order.external_id,
                             partId: part.id,
-                            buildId: buildDetails.external_id,
+                            buildId: buildDetails.id,
+                            buildExternalId: buildDetails.external_id,
                             read: false,
                             delete: false,
                             externalId: null
@@ -399,9 +407,11 @@ async function buildHandler(result,index){
                     let [order] = await db.getOrderById(part.order_id)
                     const data = {
                         description: 'Part Shipped',
-                        orderId: order.external_id,
+                        orderId: order.id,
+                        orderExternalId: order.external_id,
                         partId: part.id,
-                        buildId: buildDetails.external_id,
+                        buildId: buildDetails.id,
+                        uildExternalId: buildDetails.external_id,
                         read: false,
                         delete: false,
                         externalId: null
@@ -563,9 +573,11 @@ async function partHandler(result,index){
                 try{
                     const data = {
                         description: 'Documentation Uploaded',
-                        orderId: order.external_id,
+                        orderId: order.id,
+                        orderExternalId: order.external_id,
                         partId: partDetails.id,
-                        buildId: build.external_id,
+                        buildId: build.id,
+                        buildExternalId: build.external_id,
                         read: false,
                         delete: false,
                         externalId: null

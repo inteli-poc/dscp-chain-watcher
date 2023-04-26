@@ -320,38 +320,44 @@ async function buildHandler(result,index){
                 }
             }
             if(build.status == 'Part Received'){
-                let partIds = await db.getPartIdsByBuildId(id.data)
-                for(let partId of partIds){
-                    let part_transaction = {}
-                    part_transaction.part_id = partId.id
-                    part_transaction.type = 'ownership'
-                    part_transaction.status = 'Submitted'
-                    const [transaction] = await db.insertPartTransaction(part_transaction)
-                    let inputs = [partId.latest_token_id]
-                    let outputs = [{
-                        roles: {
-                            Owner: result.roles.Buyer,
-                            Buyer: result.roles.Buyer,
-                            Supplier: result.roles.Supplier,
-                            },
-                            metadata: {
-                            type: { type: 'LITERAL', value: 'PART' },
-                            id: { type: 'FILE', value: 'id.json' },
-                            transactionId: { type: 'LITERAL', value: transaction.id.replace(/-/g, '') },
-                            actionType: { type: 'LITERAL', value: 'ownership' },
-                            },
-                            parent_index: 0
-                    }]
-                    try{
-                        let response = await dscpApi.runProcess({inputs,outputs,id : Buffer.from(JSON.stringify(partId.id))})
-                        response = response.data
-                        partId.latest_token_id = response[0]
-                        await db.updatePartTransaction(transaction.id, response[0])
-                        await db.updatePart(partId, partId.original_token_id)
-                    }
-                    catch(err){
-                        await db.removeTransactionPart(transaction.id)
-                        throw err
+                let updateType = await dscpApi.getMetadata(index,'updateType')
+                updateType = updateType.data
+                build.update_type = updateType
+                if(updateType === 'GRN Uploaded')
+                {
+                    let partIds = await db.getPartIdsByBuildId(id.data)
+                    for(let partId of partIds){
+                        let part_transaction = {}
+                        part_transaction.part_id = partId.id
+                        part_transaction.type = 'ownership'
+                        part_transaction.status = 'Submitted'
+                        const [transaction] = await db.insertPartTransaction(part_transaction)
+                        let inputs = [partId.latest_token_id]
+                        let outputs = [{
+                            roles: {
+                                Owner: result.roles.Buyer,
+                                Buyer: result.roles.Buyer,
+                                Supplier: result.roles.Supplier,
+                                },
+                                metadata: {
+                                type: { type: 'LITERAL', value: 'PART' },
+                                id: { type: 'FILE', value: 'id.json' },
+                                transactionId: { type: 'LITERAL', value: transaction.id.replace(/-/g, '') },
+                                actionType: { type: 'LITERAL', value: 'ownership' },
+                                },
+                                parent_index: 0
+                        }]
+                        try{
+                            let response = await dscpApi.runProcess({inputs,outputs,id : Buffer.from(JSON.stringify(partId.id))})
+                            response = response.data
+                            partId.latest_token_id = response[0]
+                            await db.updatePartTransaction(transaction.id, response[0])
+                            await db.updatePart(partId, partId.original_token_id)
+                        }
+                        catch(err){
+                            await db.removeTransactionPart(transaction.id)
+                            throw err
+                        }
                     }
                 }
             }

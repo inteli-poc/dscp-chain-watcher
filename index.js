@@ -168,7 +168,7 @@ async function orderHandler(result,index){
                     const data = {
                         description: 'Purchase order Accepted',
                         orderId: orderDetails.id,
-                        orderExternalId: orderDetails.id,
+                        orderExternalId: orderDetails.external_id,
                         buildExternalId: null,
                         partId: null,
                         buildId: null,
@@ -187,7 +187,7 @@ async function orderHandler(result,index){
                     const data = {
                         description: 'Purchase order Acknowledged',
                         orderId: orderDetails.id,
-                        orderExternalId: orderDetails.id,
+                        orderExternalId: orderDetails.external_id,
                         buildExternalId: null,
                         partId: null,
                         buildId: null,

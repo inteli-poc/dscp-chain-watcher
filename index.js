@@ -7,6 +7,7 @@ const { default: axios } = require('axios');
 const inteliApi = require('./inteli-api')
 const storage = new Storage()
 
+//this function syncs recipe data from chain to db
 async function recipeHandler(result,index){
     let recipe_transaction = {}
     let id = await dscpApi.getMetadata(index,'id')
@@ -16,6 +17,7 @@ async function recipeHandler(result,index){
     recipe_transaction.status = 'Submitted'
     recipe_transaction.type = 'Creation'
     recipe_transaction.token_id = result.id
+    //if the recipe is newly created on chain
     if(result.id == result.original_id){
         const recipe = {}
         let alloy = await dscpApi.getMetadata(index,'alloy')
@@ -52,13 +54,16 @@ async function recipeHandler(result,index){
         recipe.price = price.data
         recipe.id = id.data
         const response = await db.checkRecipeExists({original_token_id : result.original_id})
+        // insert recipe details into db if it does not exist
         if(response.length == 0){
             await db.insertRecipe(recipe)
             await db.insertRecipeTransaction(recipe_transaction)
         }
     }
+    //if recipe is not newly created on chain
     else{
         const [recipeDetails] = await db.getRecipeById(id.data)
+        // update newly created transactions for recipe in db if it is not already updated
         if(recipeDetails.latest_token_id < result.id){
             await db.updateRecipe(result.id,result.original_id)
             await db.insertRecipeTransaction(recipe_transaction)
@@ -66,6 +71,8 @@ async function recipeHandler(result,index){
     }
 }
 
+
+// this function syncs order details from chain to db
 async function orderHandler(result,index){
     let order = {}
     let order_transaction = {}
@@ -80,6 +87,7 @@ async function orderHandler(result,index){
     order_transaction.token_id = result.id
     order_transaction.type = actionType
     order.status = status.data
+    //if the order is newly created on chain
     if(result.id == result.original_id){
         let partUids = await dscpApi.getMetadata(index,'parts')
         partUids = partUids.data
@@ -95,6 +103,7 @@ async function orderHandler(result,index){
         order.external_id = externalId.data
         order.business_partner_code = businessPartnerCode
         const response = await db.checkOrderExists({original_token_id : result.original_id})
+        // insert order details into db if it does not exist
         if(response.length == 0){
             await db.insertOrder(order)
             await db.insertOrderTransaction(order_transaction)
@@ -124,8 +133,10 @@ async function orderHandler(result,index){
             }
         }
     }
+    //if the order is not newly created on chain
     else{
         const [orderDetails] = await db.getOrderById(id.data)
+        // update newly created transactions for order in db if it is not already updated
         if(orderDetails.latest_token_id < result.id){
             order.image_attachment_id = null
             order.comments = null
@@ -203,6 +214,7 @@ async function orderHandler(result,index){
             }
         }
     }
+    // uploads part details to GCP storage for use by kinaxis
     if(actionType == 'Submission' || actionType == 'Acknowledgment' || actionType == 'Amendment'){
         try{
             let parts
@@ -228,6 +240,7 @@ async function orderHandler(result,index){
     }
 }
 
+// this function syncs build details from chain to db
 async function buildHandler(result,index){
     let build = {}
     let build_transaction = {}
@@ -247,6 +260,7 @@ async function buildHandler(result,index){
         let completionEstimate = await dscpApi.getMetadata(index,'completionEstimate')
         build.completion_estimate = completionEstimate.data
     }
+    //if the build is newly created on chain
     if(result.id == result.original_id){
         let partIds = await dscpApi.getMetadata(index,'parts')
         partIds = partIds.data
@@ -255,6 +269,7 @@ async function buildHandler(result,index){
         build.supplier = result.roles.Supplier
         build.id = id.data
         const response = await db.checkBuildExists({original_token_id : result.original_id})
+        // insert build into db if it does not exist
         if(response.length == 0){
             await db.insertBuild(build)
             await db.insertBuildTransaction(build_transaction)
@@ -266,8 +281,10 @@ async function buildHandler(result,index){
             }
         }
     }
+    // if build is not newly created on chain
     else{
         const [buildDetails] = await db.getBuildById(id.data)
+        // update newly created transactions for build in db if it is not already updated
         if(buildDetails.latest_token_id < result.id){
             if(build.status == 'Completed'){
                 let completedAt = await dscpApi.getMetadata(index,'completedAt')
@@ -323,6 +340,7 @@ async function buildHandler(result,index){
                 let updateType = await dscpApi.getMetadata(index,'updateType')
                 updateType = updateType.data
                 build.update_type = updateType
+                // once the GRN is uploaded by the buyer, transfer the ownership of part from supplier back to buyer
                 if(updateType === 'GRN Uploaded')
                 {
                     let partIds = await db.getPartIdsByBuildId(id.data)
@@ -479,6 +497,7 @@ async function gatherPartDetails(index){
     return part
 }
 
+// this function syncs part data from chain to db
 async function partHandler(result,index){
     let id = await dscpApi.getMetadata(index,'id')
     id = id.data
@@ -493,6 +512,7 @@ async function partHandler(result,index){
     part_transaction.type = actionType
     part_transaction.status = 'Submitted'
     part_transaction.token_id = result.id
+    // if the part is newly created on chain
     if(result.id == result.original_id){
         part = await gatherPartDetails(index)
         part.id = id
@@ -502,13 +522,16 @@ async function partHandler(result,index){
         let [recipe] = await db.getRecipeById(part.recipe_id)
         part.certifications = JSON.stringify(recipe.required_certs)
         const response = await db.checkPartExists({original_token_id : result.original_id})
+        // insert part details into db if does not exist
         if(response.length == 0){
             await db.insertPart(part, result.original_id)
             await db.insertPartTransaction(part_transaction)
         }
     }
+    //if part is not newly created on chain
     else{
         const [partDetails] = await db.getPartById(id)
+        // update newly created transactions for part in db if it is not already updated
         if(partDetails.latest_token_id < result.id){
             if(actionType == 'metadata-update' || actionType == 'certification'){
                 let image = await dscpApi.getMetadata(index,'image')
@@ -612,6 +635,7 @@ async function partHandler(result,index){
     }
 }
 
+// this function syncs machining order details from chain to db
 async function machiningOrderHandler(result, index){
     let id = await dscpApi.getMetadata(index,'id')
     id = id.data
@@ -627,6 +651,7 @@ async function machiningOrderHandler(result, index){
     machining_order_transactions.status = 'Submitted'
     machining_order_transactions.token_id = result.id
     machiningOrder.status = status.data
+     // if the machining order is newly created on chain
     if(result.id == result.original_id){
         let externalId = await dscpApi.getMetadata(index, 'externalId')
         let partId = await dscpApi.getMetadata(index, 'partId')
@@ -638,14 +663,18 @@ async function machiningOrderHandler(result, index){
         machiningOrder.latest_token_id = result.id
         machiningOrder.part_id = partId.data
         const response = await db.checkMachiningOrderExists({original_token_id : result.original_id})
+        //insert machining order details into db if it does not exist
         if(response.length == 0){
             await db.insertMachiningOrder(machiningOrder, result.original_id)
             await db.insertMachiningOrderTransaction(machining_order_transactions)
         }
     }
+    // if machining order is not newly created on chain
     else{
         let [machiningOrderDetails] = await db.getMachiningOrderById(id)
+        // update newly created transactions for machining order in db if it is not already updated
         if(machiningOrderDetails.latest_token_id < result.id){
+            // when third party starts machining order transfer the part ownership from suppplier to third party
             if(actionType === 'Start'){
                 let startedAt = await dscpApi.getMetadata(index, 'startedAt')
                 machiningOrder.started_at = startedAt.data
@@ -687,6 +716,7 @@ async function machiningOrderHandler(result, index){
                 machiningOrder.completed_at = completedAt.data
             }
             else if(actionType === 'Part Shipped'){
+                // when part is shipped by third party update the update_type of build to Rough Machining and NDT completed
                 let [part] = await db.getPartById(machiningOrderDetails.part_id)
                 let [build] = await db.getBuildById(part.build_id)
                 build.update_type = 'Rough Machining and NDT Completed'
@@ -762,6 +792,11 @@ const buildBuildOutputs = (data) => {
     }
   }
 
+
+/* this functions gets the last token id processed in the db and compare it
+  with the last token in the chain. if the token in db is less than token on chain
+  it syncs all the latest transaction happened on the chain to db
+*/
 async function blockChainWatcher(){
     let result = await db.getLastProcessedTokenID()
     let lasttokenidprocessed

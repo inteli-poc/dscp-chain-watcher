@@ -585,8 +585,14 @@ async function partHandler(result,index){
             else if(actionType == 'acknowledgement' || actionType == 'amendment'){
                 let [partDetails] = await db.getPartById(id)
                 let newPart = await gatherPartDetails(index)
-                let comments = await dscpApi.getMetadata(index, 'comments')
-                comments = comments.data
+                let comments = null
+                try{
+                    comments = await dscpApi.getMetadata(index, 'comments')
+                    comments = comments.data
+                }
+                catch(err){
+                    console.log('comments not found')
+                }
                 part = { ...partDetails, ...newPart, comments}
             }
             else if(actionType == 'update-delivery-date'){
